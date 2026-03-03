@@ -1,65 +1,156 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import { Database, Loader2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SearchBar } from "@/components/search/search-bar";
+import { DatasetCard } from "@/components/search/dataset-card";
+import { DataserviceCard } from "@/components/search/dataservice-card";
+import { ErrorDisplay } from "@/components/shared/error-display";
+import { useDebounce } from "@/hooks/use-debounce";
+import { useSearch } from "@/hooks/use-search";
+import type { Dataset, DataService } from "@/types/dataset";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationPrevious,
+  PaginationNext,
+} from "@/components/ui/pagination";
+
+export default function HomePage() {
+  const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 300);
+  const { results, total, isLoading, error, page, tab, setTab, search } =
+    useSearch();
+
+  useEffect(() => {
+    if (debouncedQuery) {
+      search(debouncedQuery, 1);
+    }
+  }, [debouncedQuery, search]);
+
+  const totalPages = Math.ceil(total / 20);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8">
+      {/* Hero */}
+      <div className="text-center mb-8">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Database className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-bold">Le 49.3</h1>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <p className="text-muted-foreground">
+          Parce que vos requêtes n&apos;ont pas besoin de majorité.
+        </p>
+      </div>
+
+      {/* Search */}
+      <SearchBar value={query} onChange={setQuery} />
+
+      {/* Tabs */}
+      <Tabs
+        value={tab}
+        onValueChange={(v) => {
+          setTab(v as "datasets" | "dataservices");
+        }}
+        className="mt-6"
+      >
+        <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
+          <TabsTrigger value="datasets">Datasets</TabsTrigger>
+          <TabsTrigger value="dataservices">APIs</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Results */}
+      <div className="mt-6 space-y-3">
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-sm text-muted-foreground">
+              Interrogation du MCP data.gouv.fr...
+            </span>
+          </div>
+        )}
+
+        {error && (
+          <ErrorDisplay
+            message={error}
+            onRetry={() => search(debouncedQuery, page)}
+          />
+        )}
+
+        {!isLoading && !error && results.length === 0 && debouncedQuery && (
+          <div className="text-center py-12 text-muted-foreground">
+            <p>Aucun résultat pour &quot;{debouncedQuery}&quot;</p>
+          </div>
+        )}
+
+        {!isLoading && !error && results.length === 0 && !debouncedQuery && (
+          <div className="text-center py-12 text-muted-foreground">
+            <p>
+              Recherchez des datasets ou des APIs dans l&apos;Open Data français
+            </p>
+          </div>
+        )}
+
+        {!isLoading &&
+          !error &&
+          results.length > 0 && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                {total} résultat{total > 1 ? "s" : ""} trouvé
+                {total > 1 ? "s" : ""}
+              </p>
+
+              {tab === "datasets"
+                ? (results as Dataset[]).map((dataset) => (
+                    <DatasetCard key={dataset.id} dataset={dataset} />
+                  ))
+                : (results as DataService[]).map((ds) => (
+                    <DataserviceCard key={ds.id} dataservice={ds} />
+                  ))}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Pagination className="mt-6">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => {
+                          if (page > 1) search(debouncedQuery, page - 1);
+                        }}
+                        className={
+                          page <= 1
+                            ? "pointer-events-none opacity-50"
+                            : "cursor-pointer"
+                        }
+                      />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <span className="text-sm text-muted-foreground px-4">
+                        Page {page} / {totalPages}
+                      </span>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => {
+                          if (page < totalPages)
+                            search(debouncedQuery, page + 1);
+                        }}
+                        className={
+                          page >= totalPages
+                            ? "pointer-events-none opacity-50"
+                            : "cursor-pointer"
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </>
+          )}
+      </div>
     </div>
   );
 }

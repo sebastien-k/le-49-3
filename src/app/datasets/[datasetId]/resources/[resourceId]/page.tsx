@@ -1,0 +1,109 @@
+import Link from "next/link";
+import { ArrowLeft, Download, ExternalLink } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { FormatBadge } from "@/components/shared/format-badge";
+import { McpTextRenderer } from "@/components/shared/mcp-text-renderer";
+import { ResourceDataViewer } from "@/components/resources/resource-data-viewer";
+import { getResourceInfo, getDatasetInfo } from "@/lib/mcp/tools";
+import { parseResourceInfo, parseDatasetInfo } from "@/lib/mcp/parsers";
+
+interface Props {
+  params: Promise<{ datasetId: string; resourceId: string }>;
+}
+
+export default async function ResourcePage({ params }: Props) {
+  const { datasetId, resourceId } = await params;
+
+  const [rawResource, rawDataset] = await Promise.all([
+    getResourceInfo({ resource_id: resourceId }),
+    getDatasetInfo({ dataset_id: datasetId }).catch(() => ""),
+  ]);
+
+  const resource = parseResourceInfo(rawResource);
+  const dataset = rawDataset ? parseDatasetInfo(rawDataset) : null;
+
+  if (!resource) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
+        <Link
+          href={`/datasets/${datasetId}`}
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
+        >
+          <ArrowLeft className="h-4 w-4" /> Retour au dataset
+        </Link>
+        <h1 className="text-2xl font-bold">Ressource introuvable</h1>
+        <McpTextRenderer raw={rawResource} className="mt-4" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-6">
+        <Link href="/" className="hover:text-foreground">
+          Recherche
+        </Link>
+        <span>/</span>
+        <Link href={`/datasets/${datasetId}`} className="hover:text-foreground">
+          {dataset?.title || datasetId}
+        </Link>
+        <span>/</span>
+        <span className="text-foreground">{resource.title}</span>
+      </div>
+
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <FormatBadge format={resource.format || "?"} />
+            <h1 className="text-xl font-bold">{resource.title}</h1>
+          </div>
+          <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
+            {resource.fileSize && <span>{resource.fileSize}</span>}
+            {resource.mimeType && <span>{resource.mimeType}</span>}
+            {resource.isTabular && (
+              <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                API Tabulaire
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {resource.url && (
+          <a href={resource.url} target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="sm">
+              <Download className="h-3.5 w-3.5 mr-1" />
+              Télécharger
+              <ExternalLink className="h-3 w-3 ml-1" />
+            </Button>
+          </a>
+        )}
+      </div>
+
+      <Separator className="my-6" />
+
+      {/* Data viewer */}
+      {resource.isTabular ? (
+        <ResourceDataViewer resourceId={resourceId} />
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">
+            Cette ressource n&apos;est pas disponible via l&apos;API Tabulaire.
+          </p>
+          {resource.url && (
+            <a href={resource.url} target="_blank" rel="noopener noreferrer">
+              <Button>
+                <Download className="h-4 w-4 mr-2" />
+                Télécharger le fichier
+              </Button>
+            </a>
+          )}
+          <McpTextRenderer raw={rawResource} className="mt-6" />
+        </div>
+      )}
+    </div>
+  );
+}
