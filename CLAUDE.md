@@ -6,15 +6,21 @@
 
 Note projet : `Notes/💻 Dev Projects/Le 49.3.md`
 
+## Déploiement
+
+- **URL** : https://le-quarante-neuf-trois.vercel.app
+- **Projet Vercel** : `sebastiens-projects-354db3cd/le-quarante-neuf-trois`
+- **Déploiement** : CLI direct (`vercel --prod`), pas encore connecté à GitHub
+
 ## Description
 
 Application web Next.js qui se connecte au serveur MCP officiel de data.gouv.fr pour extraire, explorer et visualiser les données ouvertes françaises.
 
 ## Stack
 
-- Next.js 15 (App Router) + TypeScript
+- Next.js 16 (App Router) + TypeScript
 - Tailwind CSS v4 (CSS-first, `@theme inline`, pas de `tailwind.config.ts`)
-- shadcn/ui (composants Radix)
+- shadcn/ui (composants Radix + `sonner` pour les toasts)
 - `@modelcontextprotocol/sdk` (client MCP Streamable HTTP)
 - `@tanstack/react-table` (tableau de données)
 - `lucide-react` (icônes)
