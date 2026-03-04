@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Download, Copy, Filter, ArrowUpDown } from "lucide-react";
+import { Loader2, Download, Copy, Filter, ArrowUpDown, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,6 +15,7 @@ import {
 import { DataTable } from "./data-table";
 import { McpTextRenderer } from "@/components/shared/mcp-text-renderer";
 import { ErrorDisplay } from "@/components/shared/error-display";
+import { ResourceChat } from "./resource-chat";
 import { useResourceQuery } from "@/hooks/use-resource-query";
 import { toast } from "sonner";
 
@@ -49,6 +50,10 @@ export function ResourceDataViewer({ resourceId }: ResourceDataViewerProps) {
 
   // View toggle
   const [showRaw, setShowRaw] = useState(false);
+
+  // Chat toggle
+  const [showChat, setShowChat] = useState(true);
+  const [chatExpanded, setChatExpanded] = useState(false);
 
   // Initial load
   useEffect(() => {
@@ -231,72 +236,99 @@ export function ResourceDataViewer({ resourceId }: ResourceDataViewerProps) {
           </Button>
           <Button
             size="sm"
-            variant={showRaw ? "default" : "outline"}
-            className="h-8"
+            variant="outline"
+            className={`h-8 ${showRaw ? "bg-blue-600 text-white hover:bg-blue-700 border-blue-600" : ""}`}
             onClick={() => setShowRaw(!showRaw)}
           >
             Brut
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className={`h-8 ${showChat ? "bg-blue-600 text-white hover:bg-blue-700 border-blue-600" : ""}`}
+            onClick={() => setShowChat(!showChat)}
+          >
+            <MessageSquare className="h-3.5 w-3.5 mr-1" />
+            Chat
+          </Button>
         </div>
       </div>
 
-      {/* Loading */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-sm text-muted-foreground">
-            Requête en cours...
-          </span>
+      {/* Split layout: table + chat */}
+      <div className="flex gap-4">
+        {/* Table side */}
+        <div className={`space-y-4 ${showChat ? "flex-1 min-w-0" : "w-full"}`}>
+          {/* Loading */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">
+                Requête en cours...
+              </span>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && <ErrorDisplay message={error} onRetry={() => query({ page: currentPage, page_size: pageSize })} />}
+
+          {/* Data table or raw */}
+          {!isLoading && !error && data && (
+            <>
+              <p className="text-xs text-muted-foreground">
+                {data.totalRows} ligne{data.totalRows > 1 ? "s" : ""} au total
+                — page {currentPage}/{totalPages || 1}
+              </p>
+
+              {showRaw ? (
+                <McpTextRenderer raw={raw} />
+              ) : (
+                <DataTable data={data} />
+              )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => {
+                          if (currentPage > 1) handlePageChange(currentPage - 1);
+                        }}
+                        className={currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <span className="text-sm text-muted-foreground px-4">
+                        Page {currentPage} / {totalPages}
+                      </span>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => {
+                          if (currentPage < totalPages) handlePageChange(currentPage + 1);
+                        }}
+                        className={currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </>
+          )}
         </div>
-      )}
 
-      {/* Error */}
-      {error && <ErrorDisplay message={error} onRetry={() => query({ page: currentPage, page_size: pageSize })} />}
-
-      {/* Data table or raw */}
-      {!isLoading && !error && data && (
-        <>
-          <p className="text-xs text-muted-foreground">
-            {data.totalRows} ligne{data.totalRows > 1 ? "s" : ""} au total
-            — page {currentPage}/{totalPages || 1}
-          </p>
-
-          {showRaw ? (
-            <McpTextRenderer raw={raw} />
-          ) : (
-            <DataTable data={data} />
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => {
-                      if (currentPage > 1) handlePageChange(currentPage - 1);
-                    }}
-                    className={currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-                <PaginationItem>
-                  <span className="text-sm text-muted-foreground px-4">
-                    Page {currentPage} / {totalPages}
-                  </span>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => {
-                      if (currentPage < totalPages) handlePageChange(currentPage + 1);
-                    }}
-                    className={currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
-        </>
-      )}
+        {/* Chat panel */}
+        {showChat && (
+          <div className={`${chatExpanded ? "w-[640px]" : "w-[400px]"} shrink-0 sticky top-4 h-[calc(100vh-280px)] transition-[width] duration-200`}>
+            <ResourceChat
+              resourceId={resourceId}
+              isExpanded={chatExpanded}
+              onToggleExpand={() => setChatExpanded(!chatExpanded)}
+              onClose={() => setShowChat(false)}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

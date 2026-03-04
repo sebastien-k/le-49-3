@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Download, ExternalLink } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -68,6 +68,12 @@ export default async function ResourcePage({ params }: Props) {
               <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                 API Tabulaire
               </Badge>
+            )}
+            {resource.isTabular && (
+              <span className="flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/50 px-2 py-0.5 rounded-full">
+                <MessageSquare className="h-3 w-3" />
+                Interrogeable
+              </span>
             )}
           </div>
         </div>

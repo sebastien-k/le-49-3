@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Building2, Calendar, FileText, Scale, RefreshCw, ExternalLink } from "lucide-react";
+import { ArrowLeft, Building2, Calendar, FileText, Scale, RefreshCw, ExternalLink, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -124,30 +124,41 @@ export default async function DatasetPage({ params }: Props) {
               Ce dataset ne contient aucune ressource.
             </p>
           ) : (
-            resources.map((resource) => (
-              <Link
-                key={resource.id}
-                href={`/datasets/${datasetId}/resources/${resource.id}`}
-              >
-                <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-                  <CardContent className="py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <FormatBadge format={resource.format || "?"} />
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {resource.title}
-                        </p>
-                        {resource.fileSize && (
-                          <p className="text-xs text-muted-foreground">
-                            {resource.fileSize}
+            resources.map((resource) => {
+              const queryable = ["csv", "tsv", "xls", "xlsx"].includes(
+                (resource.format || "").toLowerCase()
+              );
+              return (
+                <Link
+                  key={resource.id}
+                  href={`/datasets/${datasetId}/resources/${resource.id}`}
+                >
+                  <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+                    <CardContent className="py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <FormatBadge format={resource.format || "?"} />
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {resource.title}
                           </p>
-                        )}
+                          {resource.fileSize && (
+                            <p className="text-xs text-muted-foreground">
+                              {resource.fileSize}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))
+                      {queryable && (
+                        <span className="flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/50 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                          <MessageSquare className="h-3 w-3" />
+                          Interrogeable
+                        </span>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })
           )}
         </TabsContent>
 
