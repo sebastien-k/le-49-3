@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Download, Copy, Filter, ArrowUpDown, MessageSquare } from "lucide-react";
+import { Download, Copy, Filter, ArrowUpDown, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +13,7 @@ import {
   PaginationNext,
 } from "@/components/ui/pagination";
 import { DataTable } from "./data-table";
+import { DataTableSkeleton } from "./data-table-skeleton";
 import { McpTextRenderer } from "@/components/shared/mcp-text-renderer";
 import { ErrorDisplay } from "@/components/shared/error-display";
 import { ResourceChat } from "./resource-chat";
@@ -264,14 +265,7 @@ export function ResourceDataViewer({ resourceId, resourceTitle, datasetTitle }: 
         {/* Table side */}
         <div className={`space-y-4 ${showChat ? "md:flex-1 min-w-0" : "w-full"}`}>
           {/* Loading */}
-          {isLoading && (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-sm text-muted-foreground">
-                Requête en cours...
-              </span>
-            </div>
-          )}
+          {isLoading && <DataTableSkeleton />}
 
           {/* Error */}
           {error && <ErrorDisplay message={error} onRetry={() => query({ page: currentPage, page_size: pageSize })} />}

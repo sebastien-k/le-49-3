@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Loader2,
   Users,
   GraduationCap,
   Train,
@@ -28,6 +27,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchBar } from "@/components/search/search-bar";
 import { DatasetCard } from "@/components/search/dataset-card";
 import { DataserviceCard } from "@/components/search/dataservice-card";
+import { SearchResultsSkeleton } from "@/components/search/search-skeletons";
 import { ErrorDisplay } from "@/components/shared/error-display";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSearch } from "@/hooks/use-search";
@@ -294,14 +294,7 @@ export function SearchMode() {
       {/* Search Results */}
       {hasSearched && (
         <div className="space-y-3">
-          {isLoading && (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-sm text-muted-foreground">
-                Interrogation du MCP data.gouv.fr...
-              </span>
-            </div>
-          )}
+          {isLoading && <SearchResultsSkeleton type={tab} />}
 
           {error && (
             <ErrorDisplay
