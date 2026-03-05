@@ -27,10 +27,11 @@ function updateStep(
   label?: string,
   detail?: string,
   links?: AskStepLink[],
+  aiEnhanced?: string,
 ): AskStep[] {
   return steps.map((s) =>
     s.id === stepId
-      ? { ...s, status, ...(label && { label }), ...(detail !== undefined && { detail }), ...(links && { links }) }
+      ? { ...s, status, ...(label && { label }), ...(detail !== undefined && { detail }), ...(links && { links }), ...(aiEnhanced !== undefined && { aiEnhanced }) }
       : s,
   );
 }
@@ -98,7 +99,7 @@ export function useAsk() {
               case "step":
                 setState((prev) => ({
                   ...prev,
-                  steps: updateStep(prev.steps, event.step, event.status, event.label, event.detail, event.links),
+                  steps: updateStep(prev.steps, event.step, event.status, event.label, event.detail, event.links, event.aiEnhanced),
                 }));
                 break;
 

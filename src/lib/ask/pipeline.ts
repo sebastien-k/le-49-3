@@ -229,7 +229,8 @@ export async function runAskPipeline(
     step: "keywords",
     status: "done",
     label: "Mots-clés extraits",
-    detail: usedLlm ? `${keywords.join(", ")} (extraction IA)` : `${keywords.join(", ")} (extraction basique)`,
+    detail: usedLlm ? keywords.join(", ") : `${keywords.join(", ")} (extraction basique)`,
+    ...(usedLlm && { aiEnhanced: "Extraction optimisée par IA — correction des fautes et termes officiels" }),
   });
 
   // --- Étape 2 : Recherche datasets ---
@@ -391,6 +392,7 @@ export async function runAskPipeline(
       label: `${chosenResource.title} (${chosenResource.format})`,
       href: `/datasets/${chosenResource.datasetId}/resources/${chosenResource.id}`,
     }],
+    ...(confirmedTabular.length > 1 && { aiEnhanced: `Meilleure ressource sélectionnée parmi ${confirmedTabular.length} candidates par scoring intelligent` }),
   });
 
   // --- Étape 5 : Interroger les données (avec retry si résultats trop partiels) ---
@@ -453,7 +455,14 @@ export async function runAskPipeline(
       resourceFormat: usedResource.format,
     };
 
-    emit({ type: "step", step: "query", status: "done", label: "Réponse obtenue" });
+    const retriedQuery = usedResource.id !== chosenResource.id;
+    emit({
+      type: "step",
+      step: "query",
+      status: "done",
+      label: "Réponse obtenue",
+      ...(retriedQuery && { aiEnhanced: `Données partielles détectées — ressource plus complète sélectionnée automatiquement` }),
+    });
 
     // --- Étape 6 : Synthèse LLM ---
     let synthesis: string | null = null;
@@ -477,6 +486,7 @@ export async function runAskPipeline(
           step: "synthesis",
           status: "done",
           label: "Synthèse terminée",
+          aiEnhanced: "Réponse synthétisée par IA à partir des données brutes",
         });
       } catch (err) {
         console.error("[Synthesis] Error:", err instanceof Error ? err.message : "Unknown error");
