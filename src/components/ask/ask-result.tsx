@@ -20,8 +20,8 @@ export function AskResult({ result }: AskResultProps) {
     <div className="space-y-4 rounded-xl border border-border bg-card p-4">
       {/* Synthèse LLM (mise en avant) */}
       {synthesis && (
-        <div className="flex gap-3 rounded-lg bg-primary/5 border border-primary/10 p-4">
-          <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+        <div className="flex gap-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-500/20 p-4">
+          <Sparkles className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
           <div className="text-sm leading-relaxed text-foreground space-y-2">
             <SynthesisContent text={synthesis} />
           </div>

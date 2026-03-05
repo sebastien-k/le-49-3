@@ -68,7 +68,7 @@ export function AskStepper({ steps, collapsible = false }: AskStepperProps) {
                   </div>
                   {step.aiEnhanced && (
                     <p className="mt-1.5 rounded-md border border-green-500/20 bg-green-50 dark:bg-green-950/20 px-2.5 py-1.5 text-xs text-green-800 dark:text-green-300">
-                      {step.aiEnhanced}
+                      ✨ {step.aiEnhanced}
                     </p>
                   )}
                 </>
@@ -79,7 +79,7 @@ export function AskStepper({ steps, collapsible = false }: AskStepperProps) {
                   </p>
                   {step.aiEnhanced ? (
                     <p className="mt-1.5 rounded-md border border-green-500/20 bg-green-50 dark:bg-green-950/20 px-2.5 py-1.5 text-xs text-green-800 dark:text-green-300">
-                      {step.aiEnhanced}
+                      ✨ {step.aiEnhanced}
                     </p>
                   ) : step.detail.includes("(extraction basique)") ? (
                     <p className="mt-1.5 rounded-md border border-amber-500/20 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1.5 text-xs text-amber-800 dark:text-amber-300">
