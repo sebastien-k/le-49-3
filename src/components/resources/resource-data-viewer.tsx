@@ -54,9 +54,10 @@ export function ResourceDataViewer({ resourceId, resourceTitle, datasetTitle }: 
   const [showRaw, setShowRaw] = useState(false);
 
   // Chat toggle — hidden by default on mobile
-  const [showChat, setShowChat] = useState(
-    typeof window !== "undefined" ? window.innerWidth >= 768 : true
-  );
+  const [showChat, setShowChat] = useState(false);
+  useEffect(() => {
+    if (window.innerWidth >= 768) setShowChat(true);
+  }, []);
   const [chatExpanded, setChatExpanded] = useState(false);
 
   // Initial load
