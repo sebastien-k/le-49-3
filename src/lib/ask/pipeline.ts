@@ -386,7 +386,7 @@ export async function runAskPipeline(
     type: "step",
     step: "tabular-check",
     status: "done",
-    label: "Ressource compatible trouvée",
+    label: `${confirmedTabular.length} ressource(s) compatible(s)`,
     detail: `${chosenResource.title} (${chosenResource.format})`,
     links: [{
       label: `${chosenResource.title} (${chosenResource.format})`,
