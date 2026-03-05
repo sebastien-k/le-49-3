@@ -23,16 +23,10 @@ const INITIAL_STATE: AskState = {
 function updateStep(
   steps: AskStep[],
   stepId: AskStepId,
-  status: AskStepStatus,
-  label?: string,
-  detail?: string,
-  links?: AskStepLink[],
-  aiEnhanced?: string,
+  updates: Partial<AskStep>,
 ): AskStep[] {
   return steps.map((s) =>
-    s.id === stepId
-      ? { ...s, status, ...(label && { label }), ...(detail !== undefined && { detail }), ...(links && { links }), ...(aiEnhanced !== undefined && { aiEnhanced }) }
-      : s,
+    s.id === stepId ? { ...s, ...updates } : s,
   );
 }
 
@@ -99,7 +93,14 @@ export function useAsk() {
               case "step":
                 setState((prev) => ({
                   ...prev,
-                  steps: updateStep(prev.steps, event.step, event.status, event.label, event.detail, event.links, event.aiEnhanced),
+                  steps: updateStep(prev.steps, event.step, {
+                    status: event.status,
+                    ...(event.label && { label: event.label }),
+                    ...(event.detail !== undefined && { detail: event.detail }),
+                    ...(event.links && { links: event.links }),
+                    ...(event.aiEnhanced !== undefined && { aiEnhanced: event.aiEnhanced }),
+                    ...(event.aiMissing !== undefined && { aiMissing: event.aiMissing }),
+                  }),
                 }));
                 break;
 
@@ -117,7 +118,7 @@ export function useAsk() {
                   status: "info",
                   error: event.message,
                   steps: event.step !== "unknown"
-                    ? updateStep(prev.steps, event.step as AskStepId, "error")
+                    ? updateStep(prev.steps, event.step as AskStepId, { status: "error" })
                     : prev.steps,
                 }));
                 break;
@@ -128,7 +129,7 @@ export function useAsk() {
                   status: "error",
                   error: event.message,
                   steps: event.step !== "unknown"
-                    ? updateStep(prev.steps, event.step as AskStepId, "error")
+                    ? updateStep(prev.steps, event.step as AskStepId, { status: "error" })
                     : prev.steps,
                 }));
                 break;

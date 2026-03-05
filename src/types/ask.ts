@@ -31,6 +31,7 @@ export interface AskStepEvent {
   detail?: string;
   links?: AskStepLink[];
   aiEnhanced?: string; // Short message shown in green badge when AI improved this step
+  aiMissing?: string;  // Short message shown in amber badge when AI could improve but is not active
 }
 
 export interface AskResultEvent {
@@ -74,6 +75,7 @@ export interface AskStep {
   detail?: string;
   links?: AskStepLink[];
   aiEnhanced?: string;
+  aiMissing?: string;
 }
 
 export interface AskState {

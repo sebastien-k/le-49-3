@@ -229,8 +229,10 @@ export async function runAskPipeline(
     step: "keywords",
     status: "done",
     label: "Mots-clés extraits",
-    detail: usedLlm ? keywords.join(", ") : `${keywords.join(", ")} (extraction basique)`,
-    ...(usedLlm && { aiEnhanced: "Extraction optimisée par IA — correction des fautes et termes officiels" }),
+    detail: keywords.join(", "),
+    ...(usedLlm
+      ? { aiEnhanced: "Extraction optimisée par IA — correction des fautes et termes officiels" }
+      : { aiMissing: "Avec une clé API, l'IA corrigerait les fautes et utiliserait les termes officiels" }),
   });
 
   // --- Étape 2 : Recherche datasets ---
@@ -502,8 +504,9 @@ export async function runAskPipeline(
       emit({
         type: "step",
         step: "synthesis",
-        status: "error",
-        label: "Synthèse non disponible sans clé API",
+        status: "done",
+        label: "Synthèse ignorée",
+        aiMissing: "L'IA synthétiserait une réponse claire et structurée à partir des données brutes",
       });
     }
 
