@@ -53,8 +53,10 @@ export function ResourceDataViewer({ resourceId, resourceTitle, datasetTitle }: 
   // View toggle
   const [showRaw, setShowRaw] = useState(false);
 
-  // Chat toggle
-  const [showChat, setShowChat] = useState(true);
+  // Chat toggle — hidden by default on mobile
+  const [showChat, setShowChat] = useState(
+    typeof window !== "undefined" ? window.innerWidth >= 768 : true
+  );
   const [chatExpanded, setChatExpanded] = useState(false);
 
   // Initial load
@@ -154,7 +156,7 @@ export function ResourceDataViewer({ resourceId, resourceTitle, datasetTitle }: 
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Colonne</label>
               <Select value={filterColumn} onValueChange={setFilterColumn}>
-                <SelectTrigger className="w-[160px] h-8 text-xs">
+                <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
                   <SelectValue placeholder="Colonne" />
                 </SelectTrigger>
                 <SelectContent>
@@ -172,7 +174,7 @@ export function ResourceDataViewer({ resourceId, resourceTitle, datasetTitle }: 
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Opérateur</label>
               <Select value={filterOperator} onValueChange={setFilterOperator}>
-                <SelectTrigger className="w-[100px] h-8 text-xs">
+                <SelectTrigger className="w-full sm:w-[100px] h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -191,7 +193,7 @@ export function ResourceDataViewer({ resourceId, resourceTitle, datasetTitle }: 
                 value={filterValue}
                 onChange={(e) => setFilterValue(e.target.value)}
                 placeholder="Valeur"
-                className="w-[160px] h-8 text-xs"
+                className="w-full sm:w-[160px] h-8 text-xs"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleFilter();
                 }}
@@ -210,7 +212,7 @@ export function ResourceDataViewer({ resourceId, resourceTitle, datasetTitle }: 
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Trier par</label>
             <Select value={sortColumn} onValueChange={(col) => handleSort(col)}>
-              <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
                 <SelectValue placeholder="Trier..." />
               </SelectTrigger>
               <SelectContent>
@@ -257,9 +259,9 @@ export function ResourceDataViewer({ resourceId, resourceTitle, datasetTitle }: 
       </div>
 
       {/* Split layout: table + chat */}
-      <div className="flex gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
         {/* Table side */}
-        <div className={`space-y-4 ${showChat ? "flex-1 min-w-0" : "w-full"}`}>
+        <div className={`space-y-4 ${showChat ? "md:flex-1 min-w-0" : "w-full"}`}>
           {/* Loading */}
           {isLoading && (
             <div className="flex items-center justify-center py-12">
@@ -321,7 +323,7 @@ export function ResourceDataViewer({ resourceId, resourceTitle, datasetTitle }: 
 
         {/* Chat panel */}
         {showChat && (
-          <div className={`${chatExpanded ? "w-[640px]" : "w-[400px]"} shrink-0 sticky top-4 h-[calc(100vh-280px)] transition-[width] duration-200`}>
+          <div className={`w-full shrink-0 md:sticky md:top-4 h-[60vh] md:h-[calc(100vh-280px)] transition-[width] duration-200 ${chatExpanded ? "md:w-[640px]" : "md:w-[400px]"}`}>
             <ResourceChat
               resourceId={resourceId}
               resourceTitle={resourceTitle}

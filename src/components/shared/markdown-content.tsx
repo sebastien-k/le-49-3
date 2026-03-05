@@ -3,7 +3,8 @@ import React from "react";
 function renderInline(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   // Match: **bold**, [text](url), *italic*, `code`
-  const regex = /\*\*(.+?)\*\*|\[([^\]]+)\]\(([^)]+)\)|\*(.+?)\*|`([^`]+)`/g;
+  // Match: **bold** (or unclosed **bold at end), [text](url), *italic*, `code`
+  const regex = /\*\*(.+?)\*\*|\*\*(.+?)$|\[([^\]]+)\]\(([^)]+)\)|\*(.+?)\*|`([^`]+)`/gm;
   let lastIndex = 0;
   let match;
 
@@ -11,29 +12,30 @@ function renderInline(text: string): React.ReactNode[] {
     if (match.index > lastIndex) {
       nodes.push(text.slice(lastIndex, match.index));
     }
-    if (match[1]) {
-      nodes.push(<strong key={match.index}>{match[1]}</strong>);
-    } else if (match[2] && match[3]) {
+    if (match[1] || match[2]) {
+      // match[1] = closed **bold**, match[2] = unclosed **bold at end of line
+      nodes.push(<strong key={match.index}>{match[1] || match[2]}</strong>);
+    } else if (match[3] && match[4]) {
       nodes.push(
         <a
           key={match.index}
-          href={match[3]}
+          href={match[4]}
           target="_blank"
           rel="noopener noreferrer"
           className="underline hover:text-foreground transition-colors"
         >
-          {match[2]}
+          {match[3]}
         </a>
       );
-    } else if (match[4]) {
-      nodes.push(<em key={match.index}>{match[4]}</em>);
     } else if (match[5]) {
+      nodes.push(<em key={match.index}>{match[5]}</em>);
+    } else if (match[6]) {
       nodes.push(
         <code
           key={match.index}
           className="rounded bg-muted px-1 py-0.5 text-sm"
         >
-          {match[5]}
+          {match[6]}
         </code>
       );
     }

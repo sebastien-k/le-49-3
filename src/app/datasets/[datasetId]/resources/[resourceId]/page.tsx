@@ -83,26 +83,26 @@ export default async function ResourcePage({ params }: Props) {
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-6">
-        <Link href="/" className="hover:text-foreground">
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-6 min-w-0 overflow-hidden">
+        <Link href="/" className="hover:text-foreground shrink-0">
           Recherche
         </Link>
-        <span>/</span>
-        <Link href={`/datasets/${datasetId}`} className="hover:text-foreground">
+        <span className="shrink-0">/</span>
+        <Link href={`/datasets/${datasetId}`} className="hover:text-foreground truncate max-w-[40vw]">
           {dataset?.title || datasetId}
         </Link>
-        <span>/</span>
-        <span className="text-foreground">{resource.title}</span>
+        <span className="shrink-0">/</span>
+        <span className="text-foreground truncate">{resource.title}</span>
       </div>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+        <div className="min-w-0 w-full sm:w-auto">
+          <div className="flex items-center gap-2 min-w-0">
             <FormatBadge format={resource.format || "?"} />
-            <h1 className="text-xl font-bold">{resource.title}</h1>
+            <h1 className="text-xl font-bold break-words min-w-0">{resource.title}</h1>
           </div>
-          <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-sm text-muted-foreground">
             {resource.fileSize && <span>{resource.fileSize}</span>}
             {resource.mimeType && <span>{resource.mimeType}</span>}
             {resource.isTabular && (
