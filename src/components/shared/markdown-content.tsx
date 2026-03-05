@@ -16,17 +16,23 @@ function renderInline(text: string): React.ReactNode[] {
       // match[1] = closed **bold**, match[2] = unclosed **bold at end of line
       nodes.push(<strong key={match.index}>{match[1] || match[2]}</strong>);
     } else if (match[3] && match[4]) {
-      nodes.push(
-        <a
-          key={match.index}
-          href={match[4]}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:text-foreground transition-colors"
-        >
-          {match[3]}
-        </a>
-      );
+      const url = match[4];
+      const isSafe = /^https?:\/\//.test(url) || url.startsWith("/");
+      if (isSafe) {
+        nodes.push(
+          <a
+            key={match.index}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground transition-colors"
+          >
+            {match[3]}
+          </a>
+        );
+      } else {
+        nodes.push(match[0]);
+      }
     } else if (match[5]) {
       nodes.push(<em key={match.index}>{match[5]}</em>);
     } else if (match[6]) {
@@ -64,10 +70,11 @@ function renderBlock(block: string, index: number): React.ReactNode {
       3: "text-sm font-semibold mt-2 mb-1",
       4: "text-sm font-medium mt-2 mb-1",
     };
+    const Tag = `h${Math.min(level + 1, 6)}` as keyof React.JSX.IntrinsicElements;
     return (
-      <p key={index} className={classes[level] || classes[4]}>
+      <Tag key={index} className={classes[level] || classes[4]}>
         {renderInline(text)}
-      </p>
+      </Tag>
     );
   }
 
