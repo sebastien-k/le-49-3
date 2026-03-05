@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Building2, Calendar, FileText, Scale, RefreshCw, ExternalLink, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FormatBadge } from "@/components/shared/format-badge";
 import { McpTextRenderer } from "@/components/shared/mcp-text-renderer";
 import { MarkdownContent } from "@/components/shared/markdown-content";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
+import { MetricsChart } from "@/components/datasets/metrics-chart";
 import { getDatasetInfo, listDatasetResources, getMetrics } from "@/lib/mcp/tools";
 import { parseDatasetInfo, parseResourceList, parseMetrics } from "@/lib/mcp/parsers";
 import { datasetJsonLd } from "@/lib/seo/json-ld";
@@ -207,51 +208,8 @@ export default async function DatasetPage({ params }: Props) {
         </TabsContent>
 
         <TabsContent value="metrics" className="mt-4">
-          {metrics && metrics.entries.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  Visites et téléchargements
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b text-left text-muted-foreground">
-                        <th className="py-2 pr-4">Mois</th>
-                        <th className="py-2 pr-4 text-right">Visites</th>
-                        <th className="py-2 text-right">Téléchargements</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {metrics.entries.map((entry) => (
-                        <tr key={entry.month} className="border-b last:border-0">
-                          <td className="py-2 pr-4">{entry.month}</td>
-                          <td className="py-2 pr-4 text-right font-mono">
-                            {entry.visits.toLocaleString("fr-FR")}
-                          </td>
-                          <td className="py-2 text-right font-mono">
-                            {entry.downloads.toLocaleString("fr-FR")}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="font-semibold">
-                        <td className="py-2 pr-4">Total</td>
-                        <td className="py-2 pr-4 text-right font-mono">
-                          {metrics.totalVisits.toLocaleString("fr-FR")}
-                        </td>
-                        <td className="py-2 text-right font-mono">
-                          {metrics.totalDownloads.toLocaleString("fr-FR")}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
+          {metrics ? (
+            <MetricsChart metrics={metrics} />
           ) : (
             <p className="text-muted-foreground text-sm py-4">
               Pas de statistiques disponibles.
