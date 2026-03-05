@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { track } from "@vercel/analytics";
 import type { AskState, AskStep, AskEvent, AskResultEvent, AskStepId, AskStepStatus, AskStepLink, LlmProvider } from "@/types/ask";
 
 const INITIAL_STEPS: AskStep[] = [
@@ -104,13 +105,21 @@ export function useAsk() {
                 }));
                 break;
 
-              case "result":
+              case "result": {
+                const r = event as AskResultEvent;
                 setState((prev) => ({
                   ...prev,
                   status: "done",
-                  result: event as AskResultEvent,
+                  result: r,
                 }));
+                track("ask", {
+                  question: trimmed,
+                  outcome: "success",
+                  dataset: r.provenance.datasetTitle,
+                  hasSynthesis: r.synthesis ? "yes" : "no",
+                });
                 break;
+              }
 
               case "info":
                 setState((prev) => ({
@@ -121,6 +130,7 @@ export function useAsk() {
                     ? updateStep(prev.steps, event.step as AskStepId, { status: "error" })
                     : prev.steps,
                 }));
+                track("ask", { question: trimmed, outcome: "no-data" });
                 break;
 
               case "error":
@@ -132,6 +142,7 @@ export function useAsk() {
                     ? updateStep(prev.steps, event.step as AskStepId, { status: "error" })
                     : prev.steps,
                 }));
+                track("ask", { question: trimmed, outcome: "error" });
                 break;
             }
           } catch {

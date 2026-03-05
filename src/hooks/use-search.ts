@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { track } from "@vercel/analytics";
 import type { Dataset } from "@/types/dataset";
 import type { DataService } from "@/types/dataset";
 
@@ -64,6 +65,10 @@ export function useSearch() {
           page,
           isLoading: false,
         }));
+
+        if (page === 1) {
+          track("search", { query, tab, results: data.total || 0 });
+        }
       } catch (err) {
         setState((s) => ({
           ...s,
