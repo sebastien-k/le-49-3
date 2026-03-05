@@ -18,8 +18,9 @@ import type { Resource } from "@/types/dataset";
 // --- Constantes ---
 
 const MCP_TIMEOUT_MS = 30_000;
-const MAX_DATASETS = 3;
+const MAX_DATASETS = 5;
 const MAX_SEARCH_RESULTS = 5;
+const MIN_ROWS_THRESHOLD = 50; // Below this, try next resource if available
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
@@ -161,6 +162,11 @@ function scoreResource(candidate: ResourceCandidate, keywords: string[], questio
     if (title.includes(kw)) score += 10;
     if (datasetTitle.includes(kw)) score += 5;
     if (desc.includes(kw)) score += 3;
+
+    // Big bonus: dataset title IS the keyword (e.g. "Communes" for query "communes")
+    // This favors official/canonical datasets over regional subsets
+    const dtWords = datasetTitle.split(/\s+/).filter(w => w.length > 2);
+    if (dtWords.length <= 3 && datasetTitle.includes(kw)) score += 15;
   }
 
   // Bonus format CSV (plus fiable que XLS)
@@ -387,29 +393,64 @@ export async function runAskPipeline(
     }],
   });
 
-  // --- Étape 5 : Interroger les données ---
+  // --- Étape 5 : Interroger les données (avec retry si résultats trop partiels) ---
   emit({ type: "step", step: "query", status: "active", label: "Interrogation des données..." });
 
-  try {
-    const raw = await withTimeout(
-      queryResourceData({
-        question,
-        resource_id: chosenResource.id,
-        page: 1,
-        page_size: 20,
-      }),
-      MCP_TIMEOUT_MS,
-      "query_resource_data",
-    );
+  // Build ordered list: chosen first, then remaining confirmed tabular
+  const resourcesToTry = [
+    chosenResource,
+    ...confirmedTabular.filter((r) => r.id !== chosenResource.id),
+  ];
 
-    const data = parseTabularData(raw);
+  let raw = "";
+  let data: ReturnType<typeof parseTabularData> | null = null;
+  let usedResource = chosenResource;
+
+  for (let i = 0; i < resourcesToTry.length; i++) {
+    const resource = resourcesToTry[i];
+    try {
+      raw = await withTimeout(
+        queryResourceData({
+          question,
+          resource_id: resource.id,
+          page: 1,
+          page_size: 20,
+        }),
+        MCP_TIMEOUT_MS,
+        "query_resource_data",
+      );
+      data = parseTabularData(raw);
+      usedResource = resource;
+
+      // If we got enough rows or no more candidates, accept this result
+      if (data.totalRows >= MIN_ROWS_THRESHOLD || i === resourcesToTry.length - 1) {
+        break;
+      }
+
+      // Too few rows — try next candidate
+      emit({
+        type: "step",
+        step: "query",
+        status: "active",
+        label: `Données partielles (${data.totalRows} lignes), tentative suivante...`,
+      });
+    } catch {
+      // Query failed on this resource, try next
+      if (i < resourcesToTry.length - 1) continue;
+    }
+  }
+
+  try {
+    if (!data) {
+      throw new Error("Aucune ressource n'a pu être interrogée");
+    }
 
     const provenance: AskProvenance = {
-      datasetId: chosenResource.datasetId,
-      datasetTitle: chosenResource.datasetTitle,
-      resourceId: chosenResource.id,
-      resourceTitle: chosenResource.title,
-      resourceFormat: chosenResource.format,
+      datasetId: usedResource.datasetId,
+      datasetTitle: usedResource.datasetTitle,
+      resourceId: usedResource.id,
+      resourceTitle: usedResource.title,
+      resourceFormat: usedResource.format,
     };
 
     emit({ type: "step", step: "query", status: "done", label: "Réponse obtenue" });
