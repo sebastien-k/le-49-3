@@ -62,6 +62,9 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           onKeyDown={handleKeyDown}
           placeholder="Posez une question sur ces données..."
           disabled={disabled}
+          autoComplete="off"
+          data-1p-ignore
+          data-lpignore="true"
           rows={1}
           className="min-h-[38px] max-h-[80px] resize-none text-sm"
           aria-label="Question sur les données"

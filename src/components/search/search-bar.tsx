@@ -21,6 +21,9 @@ export function SearchBar({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        autoComplete="off"
+        data-1p-ignore
+        data-lpignore="true"
         className="pl-10 pr-10 h-12 text-base md:text-base"
       />
       {value && (

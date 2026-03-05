@@ -40,6 +40,9 @@ export function AskInput({ onAsk, isLoading }: AskInputProps) {
           }}
           placeholder="Posez une question sur les données françaises..."
           disabled={isLoading}
+          autoComplete="off"
+          data-1p-ignore
+          data-lpignore="true"
           className="flex h-12 w-full rounded-lg border border-input bg-background pl-11 pr-12 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Poser une question"
         />
