@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FormatBadge } from "@/components/shared/format-badge";
 import { McpTextRenderer } from "@/components/shared/mcp-text-renderer";
+import { MarkdownContent } from "@/components/shared/markdown-content";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { getDatasetInfo, listDatasetResources, getMetrics } from "@/lib/mcp/tools";
 import { parseDatasetInfo, parseResourceList, parseMetrics } from "@/lib/mcp/parsers";
@@ -95,9 +96,9 @@ export default async function DatasetPage({ params }: Props) {
       )}
 
       {dataset.description && (
-        <p className="mt-4 text-muted-foreground leading-relaxed">
-          {dataset.description}
-        </p>
+        <div className="mt-4 text-muted-foreground leading-relaxed">
+          <MarkdownContent content={dataset.description} />
+        </div>
       )}
 
       {/* Tags */}

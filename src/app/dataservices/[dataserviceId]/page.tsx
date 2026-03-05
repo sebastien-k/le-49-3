@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { McpTextRenderer } from "@/components/shared/mcp-text-renderer";
+import { MarkdownContent } from "@/components/shared/markdown-content";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { getDataserviceInfo, getDataserviceOpenapi } from "@/lib/mcp/tools";
 import { parseDataserviceInfo } from "@/lib/mcp/parsers";
@@ -101,9 +102,9 @@ export default async function DataservicePage({ params }: Props) {
       </div>
 
       {dataservice.description && (
-        <p className="mt-4 text-muted-foreground leading-relaxed">
-          {dataservice.description}
-        </p>
+        <div className="mt-4 text-muted-foreground leading-relaxed">
+          <MarkdownContent content={dataservice.description} />
+        </div>
       )}
 
       {/* Tags */}
