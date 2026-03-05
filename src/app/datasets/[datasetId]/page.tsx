@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Building2, Calendar, FileText, Scale, RefreshCw, ExternalLink, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -6,11 +7,47 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FormatBadge } from "@/components/shared/format-badge";
 import { McpTextRenderer } from "@/components/shared/mcp-text-renderer";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { getDatasetInfo, listDatasetResources, getMetrics } from "@/lib/mcp/tools";
 import { parseDatasetInfo, parseResourceList, parseMetrics } from "@/lib/mcp/parsers";
+import { datasetJsonLd } from "@/lib/seo/json-ld";
 
 interface Props {
   params: Promise<{ datasetId: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { datasetId } = await params;
+  const rawInfo = await getDatasetInfo({ dataset_id: datasetId });
+  const dataset = parseDatasetInfo(rawInfo);
+
+  if (!dataset) {
+    return { title: "Dataset introuvable" };
+  }
+
+  const description = dataset.description
+    ? dataset.description.slice(0, 160)
+    : `Dataset ${dataset.title} sur data.gouv.fr — ${dataset.resourceCount} ressource(s)`;
+
+  return {
+    title: dataset.title,
+    description,
+    openGraph: {
+      title: dataset.title,
+      description,
+      type: "website",
+      url: `/datasets/${datasetId}`,
+      images: ["/og-image.jpg"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: dataset.title,
+      description,
+    },
+    alternates: {
+      canonical: `/datasets/${datasetId}`,
+    },
+  };
 }
 
 export default async function DatasetPage({ params }: Props) {
@@ -40,6 +77,8 @@ export default async function DatasetPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8">
+      <JsonLdScript data={datasetJsonLd(dataset, datasetId)} />
+
       {/* Breadcrumb */}
       <Link href="/" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="h-4 w-4" /> Retour à la recherche
@@ -65,7 +104,11 @@ export default async function DatasetPage({ params }: Props) {
       {dataset.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-4">
           {dataset.tags.map((tag) => (
-            <Badge key={tag} variant="secondary">{tag}</Badge>
+            <Link key={tag} href={`/?q=${encodeURIComponent(tag)}`}>
+              <Badge variant="secondary" className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors">
+                {tag}
+              </Badge>
+            </Link>
           ))}
         </div>
       )}

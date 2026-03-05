@@ -1,24 +1,33 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { MessageSquare, Trash2, X, Maximize2, Minimize2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { MessageSquare, Sparkles, Trash2, X, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessageBubble } from "./chat-message-bubble";
 import { ChatInput } from "./chat-input";
 import { useResourceChat } from "@/hooks/use-resource-chat";
+import { getActiveProviderFromStorage, type ProviderConfig } from "@/lib/llm/providers";
 
 interface ResourceChatProps {
   resourceId: string;
+  resourceTitle?: string;
+  datasetTitle?: string;
   isExpanded: boolean;
   onToggleExpand: () => void;
   onClose: () => void;
 }
 
-export function ResourceChat({ resourceId, isExpanded, onToggleExpand, onClose }: ResourceChatProps) {
+export function ResourceChat({ resourceId, resourceTitle, datasetTitle, isExpanded, onToggleExpand, onClose }: ResourceChatProps) {
   const { messages, isLoading, sendMessage, clearHistory } =
-    useResourceChat(resourceId);
+    useResourceChat(resourceId, resourceTitle, datasetTitle);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [activeProvider, setActiveProvider] = useState<ProviderConfig | null>(null);
+
+  useEffect(() => {
+    const active = getActiveProviderFromStorage();
+    setActiveProvider(active?.config ?? null);
+  }, []);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -32,6 +41,16 @@ export function ResourceChat({ resourceId, isExpanded, onToggleExpand, onClose }
         <div className="flex items-center gap-2">
           <MessageSquare className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold">Interroger les données</h3>
+          {activeProvider ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-green-600/30 bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-950/30 dark:text-green-400">
+              <Sparkles className="h-2.5 w-2.5" />
+              {activeProvider.model}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+              Synthèse IA non activée
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1">
           {messages.length > 0 && (

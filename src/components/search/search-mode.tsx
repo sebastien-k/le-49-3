@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Loader2,
   Users,
@@ -12,6 +13,16 @@ import {
   Landmark,
   MapPin,
   Leaf,
+  ArrowLeft,
+  Wheat,
+  Building2,
+  Shield,
+  Briefcase,
+  Wifi,
+  Palette,
+  BriefcaseBusiness,
+  Scale,
+  Palmtree,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchBar } from "@/components/search/search-bar";
@@ -29,62 +40,30 @@ import {
   PaginationNext,
 } from "@/components/ui/pagination";
 
-const THEME_CHIPS = [
-  "Population",
-  "Emploi",
-  "Transport",
-  "Éducation",
-  "Logement",
-  "Santé",
-  "Énergie",
-  "Élections",
-  "Budget",
-  "Environnement",
-  "Culture",
-  "Justice",
-];
-
 const DOMAIN_CARDS = [
+  // 1. Géographie — fondation de toutes les données territoriales
+  {
+    icon: MapPin,
+    title: "Géographie",
+    description: "Cadastre, limites administratives, adresses, cartes",
+    examples: "IGN, Cadastre, BAN",
+    color: "text-teal-600",
+    bg: "bg-teal-50",
+    bl: "border-l-teal-500",
+    chips: ["Communes", "Adresses", "Cadastre", "Parcelles", "Codes postaux"],
+  },
+  // 2. Démographie — données les plus consultées sur data.gouv.fr
   {
     icon: Users,
     title: "Démographie",
-    description: "Recensement, démographie, flux migratoires, naissances par commune",
+    description: "Recensement, flux migratoires, naissances par commune",
     examples: "INSEE, INED",
     color: "text-blue-600",
     bg: "bg-blue-50",
+    bl: "border-l-blue-500",
+    chips: ["Population", "Recensement", "Naissances", "Immigration", "Espérance de vie"],
   },
-  {
-    icon: GraduationCap,
-    title: "Éducation",
-    description: "Établissements scolaires, résultats aux examens, effectifs étudiants",
-    examples: "Min. Éducation nationale, ONISEP",
-    color: "text-indigo-600",
-    bg: "bg-indigo-50",
-  },
-  {
-    icon: Train,
-    title: "Transport",
-    description: "Réseaux de transport, trafic, infrastructures, lignes de métro",
-    examples: "SNCF, RATP, Cerema",
-    color: "text-orange-600",
-    bg: "bg-orange-50",
-  },
-  {
-    icon: Zap,
-    title: "Énergie",
-    description: "Production, consommation, énergies renouvelables, réseau électrique",
-    examples: "RTE, Enedis, ADEME",
-    color: "text-yellow-600",
-    bg: "bg-yellow-50",
-  },
-  {
-    icon: Vote,
-    title: "Élections",
-    description: "Résultats électoraux, participation, découpage des circonscriptions",
-    examples: "Min. Intérieur, Conseil constitutionnel",
-    color: "text-red-600",
-    bg: "bg-red-50",
-  },
+  // 3. Santé — très recherché (COVID, hôpitaux)
   {
     icon: Heart,
     title: "Santé",
@@ -92,23 +71,54 @@ const DOMAIN_CARDS = [
     examples: "ARS, DREES, Santé publique France",
     color: "text-pink-600",
     bg: "bg-pink-50",
+    bl: "border-l-pink-500",
+    chips: ["Hôpitaux", "Médecins", "COVID", "Vaccinations", "Pharmacies"],
   },
+  // 4. Élections — pics d'intérêt récurrents
   {
-    icon: Landmark,
-    title: "Finances publiques",
-    description: "Budget de l'État, dépenses, recettes, dette, collectivités locales",
-    examples: "DGFiP, Cour des comptes, DGCL",
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
+    icon: Vote,
+    title: "Élections",
+    description: "Résultats électoraux, participation, circonscriptions",
+    examples: "Min. Intérieur, Conseil constitutionnel",
+    color: "text-red-600",
+    bg: "bg-red-50",
+    bl: "border-l-red-500",
+    chips: ["Présidentielle", "Législatives", "Municipales", "Européennes", "Participation"],
   },
+  // 5. Emploi — préoccupation quotidienne
   {
-    icon: MapPin,
-    title: "Géographie",
-    description: "Cadastre, limites administratives, adresses, cartes, parcelles",
-    examples: "IGN, Cadastre, BAN",
-    color: "text-teal-600",
-    bg: "bg-teal-50",
+    icon: BriefcaseBusiness,
+    title: "Emploi",
+    description: "Marché du travail, chômage, offres d'emploi, formation",
+    examples: "France Travail, DARES, Pôle emploi",
+    color: "text-sky-600",
+    bg: "bg-sky-50",
+    bl: "border-l-sky-500",
+    chips: ["Chômage", "Offres emploi", "Salaires", "Formation professionnelle", "Intérim"],
   },
+  // 6. Transport
+  {
+    icon: Train,
+    title: "Transport",
+    description: "Réseaux de transport, trafic, infrastructures, mobilité",
+    examples: "SNCF, RATP, Cerema",
+    color: "text-orange-600",
+    bg: "bg-orange-50",
+    bl: "border-l-orange-500",
+    chips: ["SNCF", "Métro", "Vélo", "Accidents route", "Bornes recharge"],
+  },
+  // 7. Éducation
+  {
+    icon: GraduationCap,
+    title: "Éducation",
+    description: "Établissements scolaires, résultats aux examens, effectifs",
+    examples: "Min. Éducation nationale, ONISEP",
+    color: "text-indigo-600",
+    bg: "bg-indigo-50",
+    bl: "border-l-indigo-500",
+    chips: ["Écoles", "Universités", "Baccalauréat", "Apprentissage", "Effectifs étudiants"],
+  },
+  // 8. Environnement
   {
     icon: Leaf,
     title: "Environnement",
@@ -116,20 +126,147 @@ const DOMAIN_CARDS = [
     examples: "ADEME, OFB, Météo-France",
     color: "text-green-600",
     bg: "bg-green-50",
+    bl: "border-l-green-500",
+    chips: ["Qualité air", "Biodiversité", "Déchets", "Eau potable", "Climat"],
+  },
+  // 9. Finances publiques
+  {
+    icon: Landmark,
+    title: "Finances publiques",
+    description: "Budget de l'État, dépenses, recettes, dette publique",
+    examples: "DGFiP, Cour des comptes, DGCL",
+    color: "text-emerald-600",
+    bg: "bg-emerald-50",
+    bl: "border-l-emerald-500",
+    chips: ["Budget", "Dette", "Impôts", "Collectivités", "Dépenses publiques"],
+  },
+  // 10. Immobilier
+  {
+    icon: Building2,
+    title: "Immobilier",
+    description: "Transactions, prix, logements, permis de construire",
+    examples: "DVF, INSEE, Min. Logement",
+    color: "text-slate-600",
+    bg: "bg-slate-50",
+    bl: "border-l-slate-500",
+    chips: ["Prix immobilier", "DVF", "Logements sociaux", "Permis construire", "Loyers"],
+  },
+  // 11. Sécurité
+  {
+    icon: Shield,
+    title: "Sécurité",
+    description: "Criminalité, délinquance, forces de l'ordre, accidents",
+    examples: "Min. Intérieur, ONDRP",
+    color: "text-violet-600",
+    bg: "bg-violet-50",
+    bl: "border-l-violet-500",
+    chips: ["Criminalité", "Délinquance", "Accidents", "Incendies", "Gendarmerie"],
+  },
+  // 12. Entreprises
+  {
+    icon: Briefcase,
+    title: "Entreprises",
+    description: "Créations, registres légaux, défaillances, SIRENE",
+    examples: "INSEE (SIRENE), Infogreffe",
+    color: "text-cyan-600",
+    bg: "bg-cyan-50",
+    bl: "border-l-cyan-500",
+    chips: ["SIRENE", "Créations entreprises", "Défaillances", "Auto-entrepreneurs", "Registre commerce"],
+  },
+  // 13. Énergie
+  {
+    icon: Zap,
+    title: "Énergie",
+    description: "Production, consommation, renouvelables, réseau électrique",
+    examples: "RTE, Enedis, ADEME",
+    color: "text-yellow-600",
+    bg: "bg-yellow-50",
+    bl: "border-l-yellow-500",
+    chips: ["Électricité", "Gaz", "Éolien", "Solaire", "Consommation énergie"],
+  },
+  // 14. Culture
+  {
+    icon: Palette,
+    title: "Culture",
+    description: "Musées, monuments historiques, bibliothèques, festivals",
+    examples: "Min. Culture, BnF, Joconde",
+    color: "text-rose-600",
+    bg: "bg-rose-50",
+    bl: "border-l-rose-500",
+    chips: ["Musées", "Monuments historiques", "Bibliothèques", "Cinéma", "Festivals"],
+  },
+  // 15. Agriculture
+  {
+    icon: Wheat,
+    title: "Agriculture",
+    description: "Exploitations, productions, labels, aides agricoles",
+    examples: "Min. Agriculture, INAO, FranceAgriMer",
+    color: "text-amber-600",
+    bg: "bg-amber-50",
+    bl: "border-l-amber-500",
+    chips: ["Exploitations", "Bio", "Viticulture", "PAC", "Élevage"],
+  },
+  // 16. Justice
+  {
+    icon: Scale,
+    title: "Justice",
+    description: "Tribunaux, contentieux, données pénales, accès au droit",
+    examples: "Min. Justice, Légifrance",
+    color: "text-stone-600",
+    bg: "bg-stone-50",
+    bl: "border-l-stone-500",
+    chips: ["Tribunaux", "Contentieux", "Données pénales", "Prisons", "Aide juridictionnelle"],
+  },
+  // 17. Tourisme
+  {
+    icon: Palmtree,
+    title: "Tourisme",
+    description: "Hébergements, fréquentation touristique, sites classés",
+    examples: "Atout France, DGE, INSEE",
+    color: "text-lime-600",
+    bg: "bg-lime-50",
+    bl: "border-l-lime-500",
+    chips: ["Hôtels", "Camping", "Fréquentation", "Sites touristiques", "Offices de tourisme"],
+  },
+  // 18. Numérique
+  {
+    icon: Wifi,
+    title: "Numérique",
+    description: "Couverture réseau, fibre, accès internet, données télécom",
+    examples: "ARCEP, ANCT",
+    color: "text-fuchsia-600",
+    bg: "bg-fuchsia-50",
+    bl: "border-l-fuchsia-500",
+    chips: ["Fibre", "4G 5G", "Couverture internet", "Open data", "Services publics numériques"],
   },
 ];
 
 export function SearchMode() {
-  const [query, setQuery] = useState("");
+  const searchParams = useSearchParams();
+  const initialQ = searchParams.get("q") || "";
+  const [query, setQuery] = useState(initialQ);
+  const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
   const debouncedQuery = useDebounce(query, 300);
   const { results, total, isLoading, error, page, tab, setTab, search } =
     useSearch();
+
+  // Sync from URL query param (e.g. navigating from dataset tag click)
+  useEffect(() => {
+    const q = searchParams.get("q") || "";
+    if (q && q !== query) setQuery(q);
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (debouncedQuery) {
       search(debouncedQuery, 1);
     }
   }, [debouncedQuery, search]);
+
+  // Reset selected domain when user types manually
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    if (selectedDomain) setSelectedDomain(null);
+  };
 
   const totalPages = Math.ceil(total / 20);
   const hasSearched = debouncedQuery.length > 0;
@@ -138,7 +275,7 @@ export function SearchMode() {
     <div className="space-y-6">
       {/* Search */}
       <div className="max-w-2xl mx-auto">
-        <SearchBar value={query} onChange={setQuery} />
+        <SearchBar value={query} onChange={handleQueryChange} />
       </div>
 
       {/* Tabs datasets/APIs */}
@@ -188,7 +325,7 @@ export function SearchMode() {
 
               {tab === "datasets"
                 ? (results as Dataset[]).map((dataset) => (
-                    <DatasetCard key={dataset.id} dataset={dataset} />
+                    <DatasetCard key={dataset.id} dataset={dataset} onTagClick={handleQueryChange} />
                   ))
                 : (results as DataService[]).map((ds) => (
                     <DataserviceCard key={ds.id} dataservice={ds} />
@@ -237,96 +374,104 @@ export function SearchMode() {
 
       {/* Discovery Section (visible only when no search) */}
       {!hasSearched && (
-        <div className="space-y-10">
-          {/* Theme Chips */}
-          <div className="flex flex-wrap justify-center gap-2">
-            {THEME_CHIPS.map((theme) => (
-              <button
-                key={theme}
-                onClick={() => setQuery(theme.toLowerCase())}
-                className="rounded-full border border-border bg-secondary/50 px-4 py-1.5 text-sm font-medium text-secondary-foreground transition-colors hover:bg-primary hover:text-primary-foreground hover:border-primary"
-              >
-                {theme}
-              </button>
-            ))}
-          </div>
-
-          {/* Separator */}
-          <div className="flex items-center gap-4">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-              Les donn&eacute;es de la R&eacute;publique
-            </span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          {/* Domain Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {DOMAIN_CARDS.map(({ icon: Icon, title, description, examples, color, bg }) => (
-              <button
-                key={title}
-                onClick={() => setQuery(title.toLowerCase())}
-                className="group flex flex-col items-start gap-3 rounded-xl border border-border bg-card p-5 text-left transition-all hover:border-primary/50 hover:shadow-md"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${bg}`}>
-                    <Icon className={`h-5 w-5 ${color}`} />
+        <div className="space-y-6">
+          {/* Selected domain: compact banner + chips */}
+          {selectedDomain && (() => {
+            const domain = DOMAIN_CARDS.find(({ title }) => title === selectedDomain);
+            if (!domain) return null;
+            const { icon: Icon, title, description, color, bg, bl, chips } = domain;
+            return (
+              <div className={`rounded-xl border border-border border-l-2 ${bl} bg-card p-5 space-y-4`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${bg}`}>
+                      <Icon className={`h-5 w-5 ${color}`} />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">{title}</h3>
+                      <p className="text-sm text-muted-foreground">{description}</p>
+                    </div>
                   </div>
-                  <h3 className="font-semibold text-card-foreground">{title}</h3>
+                  <button
+                    onClick={() => setSelectedDomain(null)}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0 ml-4"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline">Tous les domaines</span>
+                  </button>
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {description}
-                </p>
-                <p className="text-xs text-muted-foreground/70">
-                  {examples}
-                </p>
-              </button>
-            ))}
-          </div>
 
-          {/* Narrative Text */}
-          <div className="mx-auto max-w-2xl text-center space-y-3 pt-2">
-            <p className="text-muted-foreground leading-relaxed">
-              La R&eacute;publique produit des donn&eacute;es. Beaucoup de donn&eacute;es.
-              L&apos;INSEE compte les citoyens, M&eacute;t&eacute;o-France surveille le ciel,
-              l&apos;IGN cartographie chaque parcelle, le minist&egrave;re de l&apos;Int&eacute;rieur
-              recense chaque scrutin. Tout est l&agrave;, en acc&egrave;s libre.
-            </p>
-            <p className="text-sm text-muted-foreground/70">
-              Le 49.3 vous y donne acc&egrave;s sans passer par la proc&eacute;dure parlementaire.
-            </p>
-          </div>
+                <div className="flex flex-wrap gap-2.5 justify-center">
+                  {chips.map((chip) => (
+                    <button
+                      key={chip}
+                      onClick={() => handleQueryChange(`${title.toLowerCase()} ${chip.toLowerCase()}`)}
+                      className="rounded-full border border-border bg-secondary/50 px-5 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
-          {/* Major Producers */}
-          <div className="pt-2 pb-4">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                Producteurs majeurs
-              </span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-            <div className="flex flex-wrap justify-center gap-x-8 gap-y-4">
-              {[
-                { name: "INSEE", query: "insee" },
-                { name: "IGN", query: "ign" },
-                { name: "M\u00e9t\u00e9o-France", query: "m\u00e9t\u00e9o" },
-                { name: "ADEME", query: "ademe" },
-                { name: "Sant\u00e9 publique France", query: "sant\u00e9 publique" },
-                { name: "Min. Int\u00e9rieur", query: "\u00e9lections" },
-                { name: "SNCF", query: "sncf" },
-                { name: "Cour des comptes", query: "cour des comptes" },
-              ].map((producer) => (
-                <button
-                  key={producer.name}
-                  onClick={() => setQuery(producer.query)}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {producer.name}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Domain Grid (visible when no domain selected) */}
+          {!selectedDomain && (
+            <>
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                {DOMAIN_CARDS.map(({ icon: Icon, title, description, examples, color, bg, bl }) => (
+                  <button
+                    key={title}
+                    onClick={() => setSelectedDomain(title)}
+                    className={`group w-full flex flex-col items-start gap-3 rounded-xl border border-border border-l-2 ${bl} bg-card p-5 text-left transition-all hover:shadow-md hover:border-primary/50`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${bg}`}>
+                        <Icon className={`h-5 w-5 ${color}`} />
+                      </div>
+                      <h3 className="font-semibold text-card-foreground">{title}</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {description}
+                    </p>
+                    <p className="text-xs text-muted-foreground/70">
+                      {examples}
+                    </p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Producteurs majeurs */}
+              <div className="flex items-center gap-4 mt-4">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-sm font-medium whitespace-nowrap" style={{ color: "#000091" }}>
+                  Producteurs majeurs
+                </span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              <div className="flex flex-wrap justify-center gap-x-8 gap-y-4">
+                {[
+                  { name: "INSEE", query: "insee" },
+                  { name: "IGN", query: "ign" },
+                  { name: "Météo-France", query: "météo" },
+                  { name: "ADEME", query: "ademe" },
+                  { name: "Santé publique France", query: "santé publique" },
+                  { name: "Min. Intérieur", query: "élections" },
+                  { name: "SNCF", query: "sncf" },
+                  { name: "Cour des comptes", query: "cour des comptes" },
+                ].map((producer) => (
+                  <button
+                    key={producer.name}
+                    onClick={() => handleQueryChange(producer.query)}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {producer.name}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

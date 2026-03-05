@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import type { AskState, AskStep, AskEvent, AskResultEvent, AskStepId, AskStepStatus } from "@/types/ask";
+import type { AskState, AskStep, AskEvent, AskResultEvent, AskStepId, AskStepStatus, AskStepLink, LlmProvider } from "@/types/ask";
 
 const INITIAL_STEPS: AskStep[] = [
   { id: "keywords", label: "Extraction des mots-clés", status: "pending" },
@@ -9,6 +9,7 @@ const INITIAL_STEPS: AskStep[] = [
   { id: "resources", label: "Exploration des ressources", status: "pending" },
   { id: "tabular-check", label: "Vérification API Tabulaire", status: "pending" },
   { id: "query", label: "Interrogation des données", status: "pending" },
+  { id: "synthesis", label: "Synthèse de la réponse", status: "pending" },
 ];
 
 const INITIAL_STATE: AskState = {
@@ -25,10 +26,11 @@ function updateStep(
   status: AskStepStatus,
   label?: string,
   detail?: string,
+  links?: AskStepLink[],
 ): AskStep[] {
   return steps.map((s) =>
     s.id === stepId
-      ? { ...s, status, ...(label && { label }), ...(detail !== undefined && { detail }) }
+      ? { ...s, status, ...(label && { label }), ...(detail !== undefined && { detail }), ...(links && { links }) }
       : s,
   );
 }
@@ -37,7 +39,7 @@ export function useAsk() {
   const [state, setState] = useState<AskState>(INITIAL_STATE);
   const abortRef = useRef<AbortController | null>(null);
 
-  const ask = useCallback(async (question: string) => {
+  const ask = useCallback(async (question: string, llmProvider?: LlmProvider, llmApiKey?: string) => {
     const trimmed = question.trim();
     if (!trimmed) return;
 
@@ -60,7 +62,7 @@ export function useAsk() {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: trimmed }),
+        body: JSON.stringify({ question: trimmed, llmProvider, llmApiKey }),
         signal: controller.signal,
       });
 
@@ -96,7 +98,7 @@ export function useAsk() {
               case "step":
                 setState((prev) => ({
                   ...prev,
-                  steps: updateStep(prev.steps, event.step, event.status, event.label, event.detail),
+                  steps: updateStep(prev.steps, event.step, event.status, event.label, event.detail, event.links),
                 }));
                 break;
 
@@ -105,6 +107,17 @@ export function useAsk() {
                   ...prev,
                   status: "done",
                   result: event as AskResultEvent,
+                }));
+                break;
+
+              case "info":
+                setState((prev) => ({
+                  ...prev,
+                  status: "info",
+                  error: event.message,
+                  steps: event.step !== "unknown"
+                    ? updateStep(prev.steps, event.step as AskStepId, "error")
+                    : prev.steps,
                 }));
                 break;
 

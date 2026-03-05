@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Check, Loader2, AlertCircle, Circle, ChevronDown, ChevronUp } from "lucide-react";
 import type { AskStep } from "@/types/ask";
 
@@ -51,9 +52,36 @@ export function AskStepper({ steps, collapsible = false }: AskStepperProps) {
               >
                 {step.label}
               </p>
-              {step.detail && step.status !== "pending" && (
-                <p className="text-xs text-muted-foreground/60 mt-0.5 truncate">{step.detail}</p>
-              )}
+              {step.links && step.links.length > 0 && step.status !== "pending" ? (
+                <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
+                  {step.links.map((link, i) => (
+                    <Link
+                      key={i}
+                      href={link.href}
+                      className="text-xs text-primary hover:underline truncate max-w-[250px]"
+                      title={link.label}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              ) : step.detail && step.status !== "pending" ? (
+                <>
+                  <p className="text-xs text-muted-foreground/60 mt-0.5 truncate">
+                    {step.detail.replace(/ \(extraction (?:basique|IA)\)/, "")}
+                  </p>
+                  {step.detail.includes("(extraction basique)") && (
+                    <p className="mt-1.5 rounded-md border border-amber-500/20 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1.5 text-xs text-amber-800 dark:text-amber-300">
+                      Une clé API (Anthropic, OpenAI ou Gemini) permet d&apos;obtenir de meilleurs résultats
+                    </p>
+                  )}
+                  {step.detail.includes("(extraction IA)") && (
+                    <p className="mt-1.5 rounded-md border border-green-500/20 bg-green-50 dark:bg-green-950/20 px-2.5 py-1.5 text-xs text-green-800 dark:text-green-300">
+                      Extraction optimisée par IA
+                    </p>
+                  )}
+                </>
+              ) : null}
             </div>
           </div>
         ))}

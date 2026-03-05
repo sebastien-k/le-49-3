@@ -1,5 +1,9 @@
 import type { TabularData } from "./dataset";
 
+// --- LLM Provider ---
+
+export type LlmProvider = "anthropic" | "openai" | "gemini";
+
 // --- Pipeline step identifiers ---
 
 export type AskStepId =
@@ -7,11 +11,17 @@ export type AskStepId =
   | "search"
   | "resources"
   | "tabular-check"
-  | "query";
+  | "query"
+  | "synthesis";
 
 export type AskStepStatus = "pending" | "active" | "done" | "error";
 
 // --- SSE Events ---
+
+export interface AskStepLink {
+  label: string;
+  href: string;
+}
 
 export interface AskStepEvent {
   type: "step";
@@ -19,13 +29,21 @@ export interface AskStepEvent {
   status: AskStepStatus;
   label: string;
   detail?: string;
+  links?: AskStepLink[];
 }
 
 export interface AskResultEvent {
   type: "result";
   answer: string;
+  synthesis: string | null;
   data: TabularData | null;
   provenance: AskProvenance;
+}
+
+export interface AskInfoEvent {
+  type: "info";
+  step: AskStepId | "unknown";
+  message: string;
 }
 
 export interface AskErrorEvent {
@@ -34,7 +52,7 @@ export interface AskErrorEvent {
   message: string;
 }
 
-export type AskEvent = AskStepEvent | AskResultEvent | AskErrorEvent;
+export type AskEvent = AskStepEvent | AskResultEvent | AskInfoEvent | AskErrorEvent;
 
 // --- Provenance ---
 
@@ -53,10 +71,11 @@ export interface AskStep {
   label: string;
   status: AskStepStatus;
   detail?: string;
+  links?: AskStepLink[];
 }
 
 export interface AskState {
-  status: "idle" | "loading" | "done" | "error";
+  status: "idle" | "loading" | "done" | "info" | "error";
   question: string;
   steps: AskStep[];
   result: AskResultEvent | null;

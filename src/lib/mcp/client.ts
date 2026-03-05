@@ -4,6 +4,7 @@ import { isConnectionError, McpToolError } from "./errors";
 
 const MCP_URL = "https://mcp.data.gouv.fr/mcp";
 const TOOL_TIMEOUT = 30_000;
+const CONNECT_TIMEOUT = 10_000;
 
 let clientInstance: Client | null = null;
 let connectionPromise: Promise<Client> | null = null;
@@ -28,7 +29,12 @@ async function createClient(): Promise<Client> {
     connectionPromise = null;
   };
 
-  await client.connect(transport);
+  await Promise.race([
+    client.connect(transport),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("MCP connection timeout")), CONNECT_TIMEOUT),
+    ),
+  ]);
   return client;
 }
 

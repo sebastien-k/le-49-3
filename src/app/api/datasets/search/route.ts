@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ results: datasets, total, raw, page, pageSize });
   } catch (error) {
-    console.error("[API] /datasets/search error:", error);
+    console.error("[API] /datasets/search error:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       {
         error: "Échec de la recherche de datasets",

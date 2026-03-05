@@ -2,10 +2,15 @@
 
 import { useState, useCallback, useRef } from "react";
 import type { ChatMessage } from "@/types/chat";
+import { getActiveProviderFromStorage } from "@/lib/llm/providers";
 
 const MAX_MESSAGES = 30;
 
-export function useResourceChat(resourceId: string) {
+export function useResourceChat(
+  resourceId: string,
+  resourceTitle?: string,
+  datasetTitle?: string,
+) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -45,6 +50,8 @@ export function useResourceChat(resourceId: string) {
       setIsLoading(true);
 
       try {
+        const active = getActiveProviderFromStorage();
+
         const res = await fetch(`/api/resources/${resourceId}/query`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -52,6 +59,10 @@ export function useResourceChat(resourceId: string) {
             question: trimmed,
             page: 1,
             page_size: 20,
+            llmProvider: active?.provider,
+            llmApiKey: active?.apiKey,
+            resourceTitle,
+            datasetTitle,
           }),
           signal: controller.signal,
         });
@@ -69,6 +80,7 @@ export function useResourceChat(resourceId: string) {
               ? {
                   ...msg,
                   content: result.raw || "Aucune réponse.",
+                  synthesis: result.synthesis || undefined,
                   data: result.data || undefined,
                   isLoading: false,
                 }
@@ -96,7 +108,7 @@ export function useResourceChat(resourceId: string) {
         abortRef.current = null;
       }
     },
-    [resourceId, isLoading]
+    [resourceId, resourceTitle, datasetTitle, isLoading]
   );
 
   const clearHistory = useCallback(() => {

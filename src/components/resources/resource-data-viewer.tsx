@@ -21,6 +21,8 @@ import { toast } from "sonner";
 
 interface ResourceDataViewerProps {
   resourceId: string;
+  resourceTitle?: string;
+  datasetTitle?: string;
 }
 
 const FILTER_OPERATORS = [
@@ -32,7 +34,7 @@ const FILTER_OPERATORS = [
   { value: "strictly_greater", label: ">" },
 ];
 
-export function ResourceDataViewer({ resourceId }: ResourceDataViewerProps) {
+export function ResourceDataViewer({ resourceId, resourceTitle, datasetTitle }: ResourceDataViewerProps) {
   const { data, raw, isLoading, error, query } = useResourceQuery(resourceId);
 
   // Filter state
@@ -322,6 +324,8 @@ export function ResourceDataViewer({ resourceId }: ResourceDataViewerProps) {
           <div className={`${chatExpanded ? "w-[640px]" : "w-[400px]"} shrink-0 sticky top-4 h-[calc(100vh-280px)] transition-[width] duration-200`}>
             <ResourceChat
               resourceId={resourceId}
+              resourceTitle={resourceTitle}
+              datasetTitle={datasetTitle}
               isExpanded={chatExpanded}
               onToggleExpand={() => setChatExpanded(!chatExpanded)}
               onClose={() => setShowChat(false)}

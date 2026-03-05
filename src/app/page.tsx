@@ -1,7 +1,7 @@
 "use client";
 
 import { Database } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ByokCard } from "@/components/shared/byok-card";
 import { AskMode } from "@/components/ask/ask-mode";
 import { SearchMode } from "@/components/search/search-mode";
 
@@ -11,32 +11,48 @@ export default function HomePage() {
       {/* Hero */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <Database className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">Le 49.3</h1>
+          <Database className="h-10 w-10" style={{ color: "#000091" }} />
+          <h1 className="text-4xl font-bold" style={{ color: "#000091" }}>Le 49.3</h1>
         </div>
-        <p className="text-muted-foreground">
+        <p className="text-lg" style={{ color: "#000091" }}>
           L&apos;explorateur des donn&eacute;es ouvertes de la R&eacute;publique fran&ccedil;aise
         </p>
-        <p className="text-sm text-muted-foreground/70 italic mt-1">
+        <p className="text-base font-medium mt-3" style={{ color: "#000091" }}>
           Parce que vos requ&ecirc;tes n&apos;ont pas besoin de majorit&eacute;.
+        </p>
+        <p className="text-sm italic mt-1" style={{ color: "#000091", opacity: 0.7 }}>
+          Le 49.3 vous y donne acc&egrave;s sans passer par la proc&eacute;dure parlementaire.
         </p>
       </div>
 
-      {/* Tabs Question / Rechercher */}
-      <Tabs defaultValue="ask" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
-          <TabsTrigger value="ask">Poser une question</TabsTrigger>
-          <TabsTrigger value="search">Rechercher</TabsTrigger>
-        </TabsList>
+      {/* BYOK — Clé API */}
+      <div className="mb-8">
+        <ByokCard />
+      </div>
 
-        <TabsContent value="ask">
-          <AskMode />
-        </TabsContent>
+      {/* Séparateur Ask */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-sm font-medium whitespace-nowrap" style={{ color: "#000091" }}>
+          Interroger les donn&eacute;es
+        </span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
 
-        <TabsContent value="search">
-          <SearchMode />
-        </TabsContent>
-      </Tabs>
+      {/* Ask — question en langage naturel */}
+      <AskMode />
+
+      {/* Séparateur */}
+      <div className="flex items-center gap-4 my-8">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-sm font-medium whitespace-nowrap" style={{ color: "#000091" }}>
+          Explorer par th&egrave;me
+        </span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      {/* Recherche et découverte */}
+      <SearchMode />
     </div>
   );
 }

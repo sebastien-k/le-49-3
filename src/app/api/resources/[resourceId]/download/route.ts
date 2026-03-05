@@ -19,7 +19,7 @@ export async function GET(
 
     return NextResponse.json({ raw });
   } catch (error) {
-    console.error("[API] /resources/download error:", error);
+    console.error("[API] /resources/download error:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       {
         error: "Échec du téléchargement",

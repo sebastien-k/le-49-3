@@ -10,7 +10,9 @@ import {
   parseResourceInfo,
   parseTabularData,
 } from "@/lib/mcp/parsers";
-import type { AskEvent, AskProvenance } from "@/types/ask";
+import { synthesizeAnswer } from "@/lib/ask/synthesis";
+import type { AskEvent, AskProvenance, LlmProvider } from "@/types/ask";
+import { humanizeError } from "@/lib/mcp/errors";
 import type { Resource } from "@/types/dataset";
 
 // --- Constantes ---
@@ -63,11 +65,112 @@ export function extractKeywords(question: string): string[] {
   return [...new Set(words)].slice(0, 3);
 }
 
+// --- Extraction de mots-clés via LLM (avec fallback mécanique) ---
+
+const KW_LLM_TIMEOUT_MS = 8_000;
+const KW_MAX_TOKENS = 50;
+
+const KW_PROMPT = (q: string) =>
+  `Extrais 2 à 3 mots-clés de recherche optimaux pour cette question sur les données ouvertes françaises.
+Corrige les fautes de frappe et d'accent. Utilise les termes officiels français.
+Réponds UNIQUEMENT avec les mots-clés séparés par des virgules, rien d'autre.
+
+Question : "${q}"`;
+
+async function extractKeywordsWithLlm(
+  question: string,
+  provider: LlmProvider,
+  apiKey: string,
+): Promise<string[]> {
+  const prompt = KW_PROMPT(question);
+
+  let text: string;
+  switch (provider) {
+    case "anthropic": {
+      const Anthropic = (await import("@anthropic-ai/sdk")).default;
+      const client = new Anthropic({ apiKey });
+      const msg = await client.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: KW_MAX_TOKENS,
+        messages: [{ role: "user", content: prompt }],
+      });
+      const block = msg.content.find((b) => b.type === "text");
+      text = block?.type === "text" ? block.text : "";
+      break;
+    }
+    case "openai": {
+      const OpenAI = (await import("openai")).default;
+      const client = new OpenAI({ apiKey });
+      const completion = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: KW_MAX_TOKENS,
+        messages: [{ role: "user", content: prompt }],
+      });
+      text = completion.choices[0]?.message?.content || "";
+      break;
+    }
+    case "gemini": {
+      const { GoogleGenAI } = await import("@google/genai");
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: { maxOutputTokens: KW_MAX_TOKENS },
+      });
+      text = response.text || "";
+      break;
+    }
+    default:
+      throw new Error(`Provider LLM non reconnu : ${provider}`);
+  }
+
+  const keywords = text
+    .split(",")
+    .map((k) => k.trim().toLowerCase())
+    .filter((k) => k.length > 1 && k.length < 30);
+
+  if (keywords.length === 0) throw new Error("LLM returned no keywords");
+  return keywords.slice(0, 4);
+}
+
 type ResourceCandidate = Resource & { datasetId: string; datasetTitle: string };
+
+function normalizeText(text: string): string {
+  return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function scoreResource(candidate: ResourceCandidate, keywords: string[], question: string): number {
+  let score = 0;
+  const title = normalizeText(candidate.title || "");
+  const datasetTitle = normalizeText(candidate.datasetTitle || "");
+  const desc = normalizeText(candidate.description || "");
+  const questionWords = normalizeText(question).split(/\s+/).filter(w => w.length > 2);
+  const normalizedKeywords = keywords.map(normalizeText);
+
+  for (const kw of normalizedKeywords) {
+    if (title.includes(kw)) score += 10;
+    if (datasetTitle.includes(kw)) score += 5;
+    if (desc.includes(kw)) score += 3;
+  }
+
+  // Bonus format CSV (plus fiable que XLS)
+  if ((candidate.format || "").toLowerCase() === "csv") score += 3;
+  // Bonus type "main"
+  if ((candidate.resourceType || "").toLowerCase() === "main") score += 2;
+
+  // Mots de la question dans le titre de la ressource
+  for (const word of questionWords) {
+    if (title.includes(word)) score += 2;
+  }
+
+  return score;
+}
 
 export async function runAskPipeline(
   question: string,
   emit: (event: AskEvent) => void,
+  llmProvider?: LlmProvider,
+  llmApiKey?: string,
 ): Promise<void> {
   // Sanitize input
   question = sanitizeQuestion(question);
@@ -75,12 +178,29 @@ export async function runAskPipeline(
   // --- Étape 1 : Extraction mots-clés ---
   emit({ type: "step", step: "keywords", status: "active", label: "Extraction des mots-clés..." });
 
-  const keywords = extractKeywords(question);
+  let keywords: string[];
+  let usedLlm = false;
+
+  if (llmProvider && llmApiKey) {
+    try {
+      keywords = await withTimeout(
+        extractKeywordsWithLlm(question, llmProvider, llmApiKey),
+        KW_LLM_TIMEOUT_MS,
+        "extractKeywordsWithLlm",
+      );
+      usedLlm = true;
+    } catch {
+      // Fallback silencieux vers extraction mécanique
+      keywords = extractKeywords(question);
+    }
+  } else {
+    keywords = extractKeywords(question);
+  }
 
   if (keywords.length === 0) {
     emit({ type: "step", step: "keywords", status: "error", label: "Aucun mot-clé extrait" });
     emit({
-      type: "error",
+      type: "info",
       step: "keywords",
       message: "Impossible d'extraire des mots-clés de la question. Essayez une question plus précise.",
     });
@@ -93,7 +213,7 @@ export async function runAskPipeline(
     step: "keywords",
     status: "done",
     label: "Mots-clés extraits",
-    detail: keywords.join(", "),
+    detail: usedLlm ? `${keywords.join(", ")} (extraction IA)` : `${keywords.join(", ")} (extraction basique)`,
   });
 
   // --- Étape 2 : Recherche datasets ---
@@ -111,7 +231,7 @@ export async function runAskPipeline(
     if (datasets.length === 0) {
       emit({ type: "step", step: "search", status: "error", label: "Aucun dataset trouvé" });
       emit({
-        type: "error",
+        type: "info",
         step: "search",
         message: `Aucun dataset trouvé pour "${keywordQuery}". Essayez de reformuler votre question.`,
       });
@@ -125,10 +245,11 @@ export async function runAskPipeline(
       status: "done",
       label: `${datasets.length} dataset(s) trouvé(s)`,
       detail: datasetIds.map((d) => d.title).join(", "),
+      links: datasetIds.map((d) => ({ label: d.title, href: `/datasets/${d.id}` })),
     });
   } catch (err) {
     emit({ type: "step", step: "search", status: "error", label: "Erreur de recherche" });
-    emit({ type: "error", step: "search", message: err instanceof Error ? err.message : "Erreur inconnue" });
+    emit({ type: "error", step: "search", message: humanizeError(err instanceof Error ? err.message : "Erreur inconnue") });
     return;
   }
 
@@ -169,9 +290,9 @@ export async function runAskPipeline(
         label: "Aucune ressource tabulaire",
       });
       emit({
-        type: "error",
+        type: "info",
         step: "resources",
-        message: "Aucune ressource CSV/XLS trouvée dans les datasets. Les données ne sont pas interrogeables.",
+        message: "Aucune ressource CSV/XLS trouvée dans les datasets. Les données ne sont pas interrogeables directement.",
       });
       return;
     }
@@ -183,10 +304,14 @@ export async function runAskPipeline(
       status: "done",
       label: `${candidates.length} ressource(s) tabulaire(s)`,
       detail: candidates.slice(0, 3).map((r) => `${r.title} (${r.format})`).join(", "),
+      links: candidates.slice(0, 3).map((r) => ({
+        label: `${r.title} (${r.format})`,
+        href: `/datasets/${r.datasetId}/resources/${r.id}`,
+      })),
     });
   } catch (err) {
     emit({ type: "step", step: "resources", status: "error", label: "Erreur d'exploration" });
-    emit({ type: "error", step: "resources", message: err instanceof Error ? err.message : "Erreur inconnue" });
+    emit({ type: "error", step: "resources", message: humanizeError(err instanceof Error ? err.message : "Erreur inconnue") });
     return;
   }
 
@@ -195,8 +320,14 @@ export async function runAskPipeline(
 
   let chosenResource: ResourceCandidate | null = null;
   const checkErrors: string[] = [];
+  const confirmedTabular: ResourceCandidate[] = [];
 
-  for (const candidate of candidates) {
+  // Sort candidates by relevance score before checking API
+  const scoredCandidates = candidates
+    .map((c) => ({ candidate: c, score: scoreResource(c, keywords, question) }))
+    .sort((a, b) => b.score - a.score);
+
+  for (const { candidate } of scoredCandidates) {
     try {
       const raw = await withTimeout(
         getResourceInfo({ resource_id: candidate.id }),
@@ -205,12 +336,16 @@ export async function runAskPipeline(
       );
       const info = parseResourceInfo(raw);
       if (info?.isTabular) {
-        chosenResource = { ...candidate, isTabular: true };
-        break;
+        confirmedTabular.push({ ...candidate, isTabular: true });
       }
     } catch (err) {
       checkErrors.push(`${candidate.title}: ${err instanceof Error ? err.message : "erreur"}`);
     }
+  }
+
+  if (confirmedTabular.length > 0) {
+    // First element is already the best — candidates were pre-sorted by score
+    chosenResource = confirmedTabular[0];
   }
 
   if (!chosenResource) {
@@ -221,7 +356,7 @@ export async function runAskPipeline(
       label: "Aucune ressource compatible",
     });
     emit({
-      type: "error",
+      type: checkErrors.length > 0 ? "error" : "info",
       step: "tabular-check",
       message: checkErrors.length > 0
         ? `Aucune ressource compatible (${checkErrors.length} erreur(s) : ${checkErrors[0]})`
@@ -236,6 +371,10 @@ export async function runAskPipeline(
     status: "done",
     label: "Ressource compatible trouvée",
     detail: `${chosenResource.title} (${chosenResource.format})`,
+    links: [{
+      label: `${chosenResource.title} (${chosenResource.format})`,
+      href: `/datasets/${chosenResource.datasetId}/resources/${chosenResource.id}`,
+    }],
   });
 
   // --- Étape 5 : Interroger les données ---
@@ -264,9 +403,52 @@ export async function runAskPipeline(
     };
 
     emit({ type: "step", step: "query", status: "done", label: "Réponse obtenue" });
-    emit({ type: "result", answer: raw, data, provenance });
+
+    // --- Étape 6 : Synthèse LLM ---
+    let synthesis: string | null = null;
+
+    if (llmProvider && llmApiKey) {
+      emit({
+        type: "step",
+        step: "synthesis",
+        status: "active",
+        label: "Synthèse de la réponse...",
+      });
+
+      try {
+        synthesis = await synthesizeAnswer(llmProvider, llmApiKey, question, raw, data, {
+          datasetTitle: provenance.datasetTitle,
+          resourceTitle: provenance.resourceTitle,
+        });
+
+        emit({
+          type: "step",
+          step: "synthesis",
+          status: "done",
+          label: "Synthèse terminée",
+        });
+      } catch (err) {
+        console.error("[Synthesis] Error:", err instanceof Error ? err.message : "Unknown error");
+        emit({
+          type: "step",
+          step: "synthesis",
+          status: "error",
+          label: "Synthèse indisponible",
+          detail: err instanceof Error ? err.message : "Erreur inconnue",
+        });
+      }
+    } else {
+      emit({
+        type: "step",
+        step: "synthesis",
+        status: "error",
+        label: "Synthèse non disponible sans clé API",
+      });
+    }
+
+    emit({ type: "result", answer: raw, synthesis, data, provenance });
   } catch (err) {
     emit({ type: "step", step: "query", status: "error", label: "Erreur d'interrogation" });
-    emit({ type: "error", step: "query", message: err instanceof Error ? err.message : "Erreur inconnue" });
+    emit({ type: "error", step: "query", message: humanizeError(err instanceof Error ? err.message : "Erreur inconnue") });
   }
 }

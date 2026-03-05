@@ -1,11 +1,12 @@
 import { NextRequest } from "next/server";
 import { runAskPipeline } from "@/lib/ask/pipeline";
-import type { AskEvent } from "@/types/ask";
+import { humanizeError } from "@/lib/mcp/errors";
+import type { AskEvent, LlmProvider } from "@/types/ask";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  let body: { question?: string };
+  let body: { question?: string; llmProvider?: LlmProvider; llmApiKey?: string };
   try {
     body = await request.json();
   } catch {
@@ -43,12 +44,12 @@ export async function POST(request: NextRequest) {
       };
 
       try {
-        await runAskPipeline(question, emit);
+        await runAskPipeline(question, emit, body.llmProvider, body.llmApiKey || undefined);
       } catch (err) {
         emit({
           type: "error",
           step: "unknown",
-          message: err instanceof Error ? err.message : "Erreur interne du serveur",
+          message: humanizeError(err instanceof Error ? err.message : "Erreur interne du serveur"),
         });
       } finally {
         try {

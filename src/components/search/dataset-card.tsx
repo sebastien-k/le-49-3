@@ -4,7 +4,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Dataset } from "@/types/dataset";
 
-export function DatasetCard({ dataset }: { dataset: Dataset }) {
+interface DatasetCardProps {
+  dataset: Dataset;
+  onTagClick?: (tag: string) => void;
+}
+
+export function DatasetCard({ dataset, onTagClick }: DatasetCardProps) {
   return (
     <Link href={`/datasets/${dataset.id}`}>
       <Card className="hover:border-primary/50 transition-colors cursor-pointer">
@@ -29,7 +34,12 @@ export function DatasetCard({ dataset }: { dataset: Dataset }) {
           <div className="flex items-center justify-between mt-3">
             <div className="flex flex-wrap gap-1.5">
               {dataset.tags.slice(0, 4).map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs">
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                  className={`text-xs ${onTagClick ? "cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors" : ""}`}
+                  onClick={onTagClick ? (e) => { e.preventDefault(); e.stopPropagation(); onTagClick(tag); } : undefined}
+                >
                   {tag}
                 </Badge>
               ))}

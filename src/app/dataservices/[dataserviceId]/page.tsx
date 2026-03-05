@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Globe, Building2, Calendar, Scale, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -5,11 +6,47 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { McpTextRenderer } from "@/components/shared/mcp-text-renderer";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { getDataserviceInfo, getDataserviceOpenapi } from "@/lib/mcp/tools";
 import { parseDataserviceInfo } from "@/lib/mcp/parsers";
+import { dataserviceJsonLd } from "@/lib/seo/json-ld";
 
 interface Props {
   params: Promise<{ dataserviceId: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { dataserviceId } = await params;
+  const rawInfo = await getDataserviceInfo({ dataservice_id: dataserviceId });
+  const dataservice = parseDataserviceInfo(rawInfo);
+
+  if (!dataservice) {
+    return { title: "Dataservice introuvable" };
+  }
+
+  const description = dataservice.description
+    ? dataservice.description.slice(0, 160)
+    : `API ${dataservice.title} — ${dataservice.organization}`;
+
+  return {
+    title: dataservice.title,
+    description,
+    openGraph: {
+      title: dataservice.title,
+      description,
+      type: "website",
+      url: `/dataservices/${dataserviceId}`,
+      images: ["/og-image.jpg"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: dataservice.title,
+      description,
+    },
+    alternates: {
+      canonical: `/dataservices/${dataserviceId}`,
+    },
+  };
 }
 
 export default async function DataservicePage({ params }: Props) {
@@ -39,6 +76,8 @@ export default async function DataservicePage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8">
+      <JsonLdScript data={dataserviceJsonLd(dataservice, dataserviceId)} />
+
       {/* Breadcrumb */}
       <Link
         href="/"

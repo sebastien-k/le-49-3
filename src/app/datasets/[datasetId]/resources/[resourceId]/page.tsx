@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Download, ExternalLink, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,46 @@ import { parseResourceInfo, parseDatasetInfo } from "@/lib/mcp/parsers";
 
 interface Props {
   params: Promise<{ datasetId: string; resourceId: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { datasetId, resourceId } = await params;
+  const [rawResource, rawDataset] = await Promise.all([
+    getResourceInfo({ resource_id: resourceId }),
+    getDatasetInfo({ dataset_id: datasetId }).catch(() => ""),
+  ]);
+
+  const resource = parseResourceInfo(rawResource);
+  const dataset = rawDataset ? parseDatasetInfo(rawDataset) : null;
+
+  if (!resource) {
+    return { title: "Ressource introuvable" };
+  }
+
+  const title = dataset
+    ? `${resource.title} — ${dataset.title}`
+    : resource.title;
+  const description = `Ressource ${resource.format?.toUpperCase() || ""} ${resource.fileSize ? `(${resource.fileSize})` : ""} — ${dataset?.title || "data.gouv.fr"}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: `/datasets/${datasetId}/resources/${resourceId}`,
+      images: ["/og-image.jpg"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+    alternates: {
+      canonical: `/datasets/${datasetId}/resources/${resourceId}`,
+    },
+  };
 }
 
 export default async function ResourcePage({ params }: Props) {
@@ -93,7 +134,11 @@ export default async function ResourcePage({ params }: Props) {
 
       {/* Data viewer */}
       {resource.isTabular ? (
-        <ResourceDataViewer resourceId={resourceId} />
+        <ResourceDataViewer
+          resourceId={resourceId}
+          resourceTitle={resource.title}
+          datasetTitle={dataset?.title}
+        />
       ) : (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">

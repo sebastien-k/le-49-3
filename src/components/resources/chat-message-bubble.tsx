@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronUp, Key, Sparkles } from "lucide-react";
+import { SynthesisContent } from "@/components/shared/synthesis-content";
 import type { ChatMessage } from "@/types/chat";
 
 const COLLAPSE_THRESHOLD = 200;
@@ -49,31 +50,74 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
         </div>
       ) : (
         <>
+          {/* Synthèse LLM */}
+          {message.synthesis && (
+            <div className="flex gap-2 text-sm leading-relaxed space-y-1.5">
+              <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div className="space-y-1.5">
+                <SynthesisContent text={message.synthesis} />
+              </div>
+            </div>
+          )}
+
+          {/* Bandeau incitation clé API */}
+          {!message.synthesis && message.content && (
+            <a
+              href="/"
+              className="flex items-center gap-2 rounded-md border border-amber-500/20 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors"
+            >
+              <Key className="h-3.5 w-3.5 shrink-0" />
+              <span>Ajoutez une <span className="font-semibold">cl&eacute; API</span> pour une synth&egrave;se IA.</span>
+            </a>
+          )}
+
+          {/* Données brutes — collapsibles si synthèse présente */}
           {message.content && (
             <div className="text-sm">
-              <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed break-all">
-                {displayText}
-              </pre>
-              {isLong && (
-                <button
-                  onClick={() => setExpanded(!expanded)}
-                  className="flex items-center gap-1 mt-1 text-xs text-primary hover:underline"
-                >
-                  {expanded ? (
-                    <>
-                      <ChevronUp className="h-3 w-3" />
-                      Réduire
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="h-3 w-3" />
-                      Voir tout
-                    </>
+              {message.synthesis ? (
+                <>
+                  <button
+                    onClick={() => setExpanded(!expanded)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    {expanded ? "Masquer les données brutes" : "Voir les données brutes"}
+                  </button>
+                  {expanded && (
+                    <pre className="mt-1 whitespace-pre-wrap font-mono text-xs leading-relaxed break-all text-foreground/70">
+                      {message.content}
+                    </pre>
                   )}
-                </button>
+                </>
+              ) : (
+                <>
+                  <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed break-all">
+                    {displayText}
+                  </pre>
+                  {isLong && (
+                    <button
+                      onClick={() => setExpanded(!expanded)}
+                      className="flex items-center gap-1 mt-1 text-xs text-primary hover:underline"
+                    >
+                      {expanded ? (
+                        <>
+                          <ChevronUp className="h-3 w-3" />
+                          Réduire
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-3 w-3" />
+                          Voir tout
+                        </>
+                      )}
+                    </button>
+                  )}
+                </>
               )}
             </div>
           )}
+
+          {/* Mini-tableau */}
           {message.data && message.data.rows.length > 0 && (
             <div className="border rounded-md overflow-x-auto">
               <table className="w-full text-xs">
