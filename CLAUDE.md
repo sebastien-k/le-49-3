@@ -11,7 +11,7 @@ Note projet : `Notes/💻 Dev Projects/Le 49.3.md`
 - **URL** : https://le493.fr (domaine custom Gandi → Vercel)
 - **URL Vercel** : https://le-quarante-neuf-trois.vercel.app
 - **Projet Vercel** : `sebastiens-projects-354db3cd/le-quarante-neuf-trois`
-- **Déploiement** : CLI direct (`vercel --prod`), pas encore connecté à GitHub
+- **Déploiement** : Automatique via GitHub (push → Vercel build)
 - **Domaine** : `le493.fr` acheté chez Gandi, DNS A → `76.76.21.21`, CNAME www → `cname.vercel-dns.com`
 
 ## Description
