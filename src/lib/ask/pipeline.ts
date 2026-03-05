@@ -45,6 +45,8 @@ const STOP_WORDS = new Set([
   "tous", "tout", "toute", "toutes", "tres", "bien",
   "aussi", "etre", "avoir", "faire", "france", "francais",
   "francaise", "nombre", "liste", "total",
+  "donnees", "ouvertes", "ouverts", "statistiques", "statistique",
+  "information", "informations", "nationale", "nationaux",
 ]);
 
 const TABULAR_FORMATS = new Set(["csv", "tsv", "xls", "xlsx"]);
@@ -71,9 +73,12 @@ const KW_LLM_TIMEOUT_MS = 8_000;
 const KW_MAX_TOKENS = 50;
 
 const KW_PROMPT = (q: string) =>
-  `Extrais 2 à 3 mots-clés de recherche optimaux pour cette question sur les données ouvertes françaises.
-Corrige les fautes de frappe et d'accent. Utilise les termes officiels français.
-Réponds UNIQUEMENT avec les mots-clés séparés par des virgules, rien d'autre.
+  `Extrais 1 à 3 mots-clés de recherche pour trouver un dataset sur data.gouv.fr.
+Règles :
+- Garde UNIQUEMENT le sujet concret (ex: "offices de tourisme", "hôpitaux", "population")
+- JAMAIS de termes génériques : données, ouvertes, france, français, statistiques, information, nombre, liste, total
+- Corrige les fautes. Utilise les termes officiels.
+- Réponds UNIQUEMENT avec les mots-clés séparés par des virgules.
 
 Question : "${q}"`;
 
@@ -127,10 +132,15 @@ async function extractKeywordsWithLlm(
   const keywords = text
     .split(",")
     .map((k) => k.trim().toLowerCase())
-    .filter((k) => k.length > 1 && k.length < 30);
+    .filter((k) => k.length > 1 && k.length < 30)
+    .filter((k) => {
+      // Remove keywords that are entirely stop words (e.g. "données ouvertes", "france")
+      const words = k.normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/);
+      return words.some((w) => w.length > 2 && !STOP_WORDS.has(w));
+    });
 
   if (keywords.length === 0) throw new Error("LLM returned no keywords");
-  return keywords.slice(0, 4);
+  return keywords.slice(0, 3);
 }
 
 type ResourceCandidate = Resource & { datasetId: string; datasetTitle: string };
