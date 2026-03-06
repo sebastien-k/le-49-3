@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Building2, Calendar, FileText, Scale, RefreshCw, ExternalLink, MessageSquare } from "lucide-react";
+import { ArrowLeft, Building2, Calendar, Download, FileText, Scale, RefreshCw, ExternalLink, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -64,6 +64,22 @@ export default async function DatasetPage({ params }: Props) {
   const dataset = parseDatasetInfo(rawInfo);
   const resources = parseResourceList(rawResources);
   const metrics = rawMetrics ? parseMetrics(rawMetrics) : null;
+
+  // Fetch per-resource download metrics in parallel
+  const resourceMetricsResults = await Promise.allSettled(
+    resources.map((r) =>
+      getMetrics({ resource_id: r.id }).then((raw) => ({
+        id: r.id,
+        metrics: parseMetrics(raw),
+      }))
+    )
+  );
+  const resourceDownloads = new Map<string, number>();
+  for (const result of resourceMetricsResults) {
+    if (result.status === "fulfilled" && result.value.metrics) {
+      resourceDownloads.set(result.value.id, result.value.metrics.totalDownloads);
+    }
+  }
 
   if (!dataset) {
     return (
@@ -173,6 +189,7 @@ export default async function DatasetPage({ params }: Props) {
               const queryable = ["csv", "tsv", "xls", "xlsx"].includes(
                 (resource.format || "").toLowerCase()
               );
+              const downloads = resourceDownloads.get(resource.id);
               return (
                 <Link
                   key={resource.id}
@@ -186,11 +203,17 @@ export default async function DatasetPage({ params }: Props) {
                           <p className="font-medium text-sm truncate">
                             {resource.title}
                           </p>
-                          {resource.fileSize && (
-                            <p className="text-xs text-muted-foreground">
-                              {resource.fileSize}
-                            </p>
-                          )}
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            {resource.fileSize && (
+                              <span>{resource.fileSize}</span>
+                            )}
+                            {downloads != null && downloads > 0 && (
+                              <span className="flex items-center gap-0.5">
+                                <Download className="h-3 w-3" />
+                                {downloads.toLocaleString("fr-FR")}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       {queryable && (
