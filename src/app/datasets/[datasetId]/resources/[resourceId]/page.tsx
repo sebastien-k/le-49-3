@@ -117,7 +117,7 @@ export default async function ResourcePage({ params }: Props) {
             {metrics && metrics.totalDownloads > 0 && (
               <span className="flex items-center gap-1" title="Telechargements sur data.gouv.fr (12 derniers mois)">
                 <Download className="h-3.5 w-3.5" />
-                {metrics.totalDownloads.toLocaleString("fr-FR")} tel.
+                {metrics.totalDownloads.toLocaleString("fr-FR")} téléchargements
               </span>
             )}
             {resource.isTabular && (
