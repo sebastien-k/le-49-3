@@ -105,6 +105,13 @@ src/
 - Synthèse via `lib/ask/synthesis.ts` (multi-provider, AbortController timeout 15s, max 512 tokens)
 - Composant partagé `components/shared/synthesis-content.tsx` (markdown léger : bold, bullets, paragraphes)
 
+### Ask — Piège accents dans l'extraction de mots-clés
+- `search_datasets` du MCP est sensible aux accents : "départements" ≠ "departements"
+- L'extraction mécanique (sans clé API) supprime les accents ; l'extraction LLM les ajoute → résultats différents
+- Les exemples dans `components/ask/ask-input.tsx` doivent fonctionner dans les deux modes (avec et sans clé API)
+- Éviter les mots à accents dans les exemples (ex: départements, électrique, hôpitaux, écoles, résultats, prénoms)
+- Beaucoup de datasets sur data.gouv.fr sont locaux/régionaux → les exemples retournent souvent des données partielles
+
 ## Conventions
 
 - Style amber pour avertissements non-bloquants : `rounded-md border border-amber-500/20 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300`
