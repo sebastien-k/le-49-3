@@ -81,7 +81,9 @@ src/
 - 3 providers supportés : Anthropic (Claude Haiku), OpenAI (GPT-4o mini), Gemini (Gemini 2.5 Flash)
 - Config centralisée dans `lib/llm/providers.ts` (PROVIDERS array + `getActiveProviderFromStorage()`)
 - Clés stockées dans `localStorage` par provider (`le-49-3-anthropic-key`, `le-49-3-openai-key`, `le-49-3-gemini-key`)
-- Envoyées par requête, jamais persistées côté serveur
+- Clé envoyée en header `X-Llm-Api-Key` (pas dans le body JSON), jamais persistée côté serveur
+- `getActiveProviderFromStorage()` filtre les valeurs corrompues (`"undefined"`, `"null"`, longueur < 6)
+- Validation `llmProvider` côté serveur : seules les valeurs `["anthropic", "openai", "gemini"]` sont acceptées
 - Sans clé : les features fonctionnent sans synthèse (fallback données brutes)
 - Avec clé : synthèse LLM dans Ask et Chat ressource
 - Priorité automatique : premier provider configuré dans l'ordre Anthropic → OpenAI → Gemini
@@ -100,7 +102,7 @@ src/
 - Événements SSE : `step` (progression), `result` (succès), `info` (pas de données — non-erreur), `error` (erreur technique)
 - Extraction mots-clés : LLM si clé API dispo (avec fallback silencieux vers extraction mécanique par stop-words)
 - Sélection de ressource par scoring (keywords dans titre/description, format CSV, type "main")
-- Synthèse via `lib/ask/synthesis.ts` (multi-provider, timeout 15s, max 512 tokens)
+- Synthèse via `lib/ask/synthesis.ts` (multi-provider, AbortController timeout 15s, max 512 tokens)
 - Composant partagé `components/shared/synthesis-content.tsx` (markdown léger : bold, bullets, paragraphes)
 
 ## Conventions
@@ -113,9 +115,10 @@ src/
 - Chaque réponse API inclut `raw` (texte brut MCP) en plus des données parsées
 - Fallback `<McpTextRenderer>` si le parsing échoue
 - Cache LRU en mémoire (Map, max 200 entrées) avec TTL par type de données
+- `React.cache()` sur `getDatasetInfo` pour dédupliquer les appels entre `generateMetadata` et le render
 
 ### Métriques (`get_metrics`)
 - MCP renvoie un format différent selon le scope : dataset (3 colonnes : Month/Visits/Downloads) vs resource (2 colonnes : Month/Downloads)
 - `parseMetrics` détecte le format via la ligne header (`hasVisits = trimmed.includes("Visits")`)
-- Page dataset : graphique SVG interactif (`components/datasets/metrics-chart.tsx`) + téléchargements par ressource dans la liste
+- Page dataset : graphique SVG interactif (`components/datasets/metrics-chart.tsx`) + téléchargements par ressource dans la liste (cap à 20 requêtes via `Promise.allSettled`)
 - Page ressource : total downloads inline dans le header
