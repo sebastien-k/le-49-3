@@ -210,7 +210,7 @@ export default async function DatasetPage({ params }: Props) {
                             {downloads != null && downloads > 0 && (
                               <span className="flex items-center gap-0.5">
                                 <Download className="h-3 w-3" />
-                                {downloads.toLocaleString("fr-FR")}
+                                {downloads.toLocaleString("fr-FR")} téléchargements
                               </span>
                             )}
                           </div>
