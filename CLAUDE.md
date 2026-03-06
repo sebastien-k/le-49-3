@@ -27,6 +27,7 @@ Application web Next.js qui se connecte au serveur MCP officiel de data.gouv.fr 
 - `@anthropic-ai/sdk`, `openai`, `@google/genai` (synthèse LLM multi-provider — BYOK côté client)
 - `@tanstack/react-table` (tableau de données)
 - `lucide-react` (icônes)
+- `@vercel/analytics` (analytics sans cookies, custom events)
 - `vitest` + `@vitest/coverage-v8` (tests unitaires)
 
 ## MCP Server
@@ -70,6 +71,12 @@ src/
 └── types/            # Types MCP, Dataset, API
 ```
 
+### Vercel Analytics
+- `@vercel/analytics` — `<Analytics />` dans `layout.tsx`, GDPR compliant (pas de cookies)
+- Custom events via `track()` dans les hooks :
+  - `search` (query, tab, results) dans `useSearch`
+  - `ask` (question, outcome, dataset, hasSynthesis) dans `useAsk`
+
 ### BYOK (Bring Your Own Key) — Multi-Provider
 - 3 providers supportés : Anthropic (Claude Haiku), OpenAI (GPT-4o mini), Gemini (Gemini 2.5 Flash)
 - Config centralisée dans `lib/llm/providers.ts` (PROVIDERS array + `getActiveProviderFromStorage()`)
@@ -106,3 +113,9 @@ src/
 - Chaque réponse API inclut `raw` (texte brut MCP) en plus des données parsées
 - Fallback `<McpTextRenderer>` si le parsing échoue
 - Cache LRU en mémoire (Map, max 200 entrées) avec TTL par type de données
+
+### Métriques (`get_metrics`)
+- MCP renvoie un format différent selon le scope : dataset (3 colonnes : Month/Visits/Downloads) vs resource (2 colonnes : Month/Downloads)
+- `parseMetrics` détecte le format via la ligne header (`hasVisits = trimmed.includes("Visits")`)
+- Page dataset : graphique SVG interactif (`components/datasets/metrics-chart.tsx`) + téléchargements par ressource dans la liste
+- Page ressource : total downloads inline dans le header
