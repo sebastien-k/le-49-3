@@ -5,10 +5,10 @@ import { MessageSquare, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const EXAMPLE_QUESTIONS = [
-  "Combien de communes en France ?",
   "Population de Lyon",
-  "Nombre d'écoles en Bretagne",
-  "Hôpitaux par département",
+  "Departements de France",
+  "Elections presidentielles 2022",
+  "Liste des prenoms en France",
 ];
 
 interface AskInputProps {
