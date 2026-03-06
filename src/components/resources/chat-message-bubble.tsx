@@ -42,7 +42,7 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
       : message.content;
 
   return (
-    <div className="self-start rounded-xl rounded-bl-sm bg-muted px-4 py-3 space-y-2">
+    <div className={`self-start rounded-xl rounded-bl-sm px-4 py-3 space-y-2 ${message.synthesis ? "bg-green-50 dark:bg-green-950/20" : "bg-muted"}`}>
       {message.error ? (
         <div className="flex items-start gap-2 text-destructive text-sm">
           <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
@@ -53,7 +53,7 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
           {/* Synthèse LLM */}
           {message.synthesis && (
             <div className="flex gap-2 text-sm leading-relaxed space-y-1.5">
-              <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <Sparkles className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
               <div className="space-y-1.5">
                 <SynthesisContent text={message.synthesis} />
               </div>
