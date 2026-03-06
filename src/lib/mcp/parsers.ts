@@ -383,13 +383,13 @@ export function parseMetrics(text: string): MetricsData {
   let totalDownloads = 0;
 
   const lines = text.split("\n");
-  let inTable = false;
+  let dashCount = 0;
 
   for (const line of lines) {
     const trimmed = line.trim();
 
     if (trimmed.startsWith("---")) {
-      inTable = !inTable;
+      dashCount++;
       continue;
     }
 
@@ -404,7 +404,8 @@ export function parseMetrics(text: string): MetricsData {
       continue;
     }
 
-    if (inTable && trimmed) {
+    // Data rows are between the 2nd dash line (after header) and the 3rd
+    if (dashCount === 2 && trimmed) {
       const parts = trimmed.split(/\s{2,}/);
       if (parts.length >= 3) {
         entries.push({

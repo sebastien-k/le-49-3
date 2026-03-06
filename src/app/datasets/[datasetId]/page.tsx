@@ -58,20 +58,12 @@ export default async function DatasetPage({ params }: Props) {
   const [rawInfo, rawResources, rawMetrics] = await Promise.all([
     getDatasetInfo({ dataset_id: datasetId }),
     listDatasetResources({ dataset_id: datasetId }),
-    getMetrics({ dataset_id: datasetId }).catch((err) => {
-      console.error("[Metrics] Failed for dataset", datasetId, err instanceof Error ? err.message : err);
-      return "";
-    }),
+    getMetrics({ dataset_id: datasetId }).catch(() => ""),
   ]);
 
   const dataset = parseDatasetInfo(rawInfo);
   const resources = parseResourceList(rawResources);
   const metrics = rawMetrics ? parseMetrics(rawMetrics) : null;
-  if (rawMetrics) {
-    console.log("[Metrics] Raw length:", rawMetrics.length, "Entries:", metrics?.entries.length, "Total visits:", metrics?.totalVisits);
-  } else {
-    console.log("[Metrics] No raw data for dataset", datasetId);
-  }
 
   if (!dataset) {
     return (
