@@ -384,6 +384,7 @@ export function parseMetrics(text: string): MetricsData {
 
   const lines = text.split("\n");
   let dashCount = 0;
+  let hasVisits = true; // datasets have Visits + Downloads, resources have Downloads only
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -393,13 +394,18 @@ export function parseMetrics(text: string): MetricsData {
       continue;
     }
 
-    if (trimmed.startsWith("Month")) continue;
+    if (trimmed.startsWith("Month")) {
+      hasVisits = trimmed.includes("Visits");
+      continue;
+    }
 
     if (trimmed.startsWith("Total")) {
       const parts = trimmed.split(/\s{2,}/);
-      if (parts.length >= 3) {
+      if (hasVisits && parts.length >= 3) {
         totalVisits = parseInt(parts[1].replace(/,/g, ""), 10) || 0;
         totalDownloads = parseInt(parts[2].replace(/,/g, ""), 10) || 0;
+      } else if (!hasVisits && parts.length >= 2) {
+        totalDownloads = parseInt(parts[1].replace(/,/g, ""), 10) || 0;
       }
       continue;
     }
@@ -407,11 +413,17 @@ export function parseMetrics(text: string): MetricsData {
     // Data rows are between the 2nd dash line (after header) and the 3rd
     if (dashCount === 2 && trimmed) {
       const parts = trimmed.split(/\s{2,}/);
-      if (parts.length >= 3) {
+      if (hasVisits && parts.length >= 3) {
         entries.push({
           month: parts[0],
           visits: parseInt(parts[1].replace(/,/g, ""), 10) || 0,
           downloads: parseInt(parts[2].replace(/,/g, ""), 10) || 0,
+        });
+      } else if (!hasVisits && parts.length >= 2) {
+        entries.push({
+          month: parts[0],
+          visits: 0,
+          downloads: parseInt(parts[1].replace(/,/g, ""), 10) || 0,
         });
       }
     }
