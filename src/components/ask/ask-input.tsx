@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 const EXAMPLE_QUESTIONS = [
   "Population de Lyon",
-  "Communes de France",
+  "Bornes recharge electrique",
   "Elections presidentielles 2022",
   "Liste des prenoms en France",
 ];
