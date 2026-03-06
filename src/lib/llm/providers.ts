@@ -60,7 +60,9 @@ export function getActiveProviderFromStorage(): {
 
   for (const p of PROVIDERS) {
     const key = localStorage.getItem(p.storageKey);
-    if (key) return { provider: p.id, apiKey: key, config: p };
+    if (key && key !== "undefined" && key !== "null" && key.length > 5) {
+      return { provider: p.id, apiKey: key, config: p };
+    }
   }
 
   return null;

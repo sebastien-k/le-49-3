@@ -160,9 +160,7 @@ describe("synthesizeAnswer", () => {
         PROVENANCE,
       );
 
-      const [[callArg]] = anthropicCreateSpy.mock.calls as [
-        [{ messages: { content: string }[] }],
-      ][];
+      const callArg = anthropicCreateSpy.mock.calls[0]![0] as { messages: { role: string; content: string }[] };
       expect(callArg.messages[0].content).toContain(QUESTION);
     });
 
@@ -181,9 +179,7 @@ describe("synthesizeAnswer", () => {
         PROVENANCE,
       );
 
-      const [[callArg]] = anthropicCreateSpy.mock.calls as [
-        [{ messages: { content: string }[] }],
-      ][];
+      const callArg = anthropicCreateSpy.mock.calls[0]![0] as { messages: { role: string; content: string }[] };
       expect(callArg.messages[0].content).toContain(PROVENANCE.datasetTitle);
     });
 
@@ -202,9 +198,7 @@ describe("synthesizeAnswer", () => {
         PROVENANCE,
       );
 
-      const [[callArg]] = anthropicCreateSpy.mock.calls as [
-        [{ messages: { content: string }[] }],
-      ][];
+      const callArg = anthropicCreateSpy.mock.calls[0]![0] as { messages: { role: string; content: string }[] };
       expect(callArg.messages[0].content).toContain(PROVENANCE.resourceTitle);
     });
 
@@ -223,9 +217,7 @@ describe("synthesizeAnswer", () => {
         PROVENANCE,
       );
 
-      const [[callArg]] = anthropicCreateSpy.mock.calls as [
-        [{ messages: { content: string }[] }],
-      ][];
+      const callArg = anthropicCreateSpy.mock.calls[0]![0] as { messages: { role: string; content: string }[] };
       const prompt = callArg.messages[0].content;
 
       // Non-internal columns should be listed.
@@ -252,9 +244,7 @@ describe("synthesizeAnswer", () => {
         PROVENANCE,
       );
 
-      const [[callArg]] = anthropicCreateSpy.mock.calls as [
-        [{ messages: { content: string }[] }],
-      ][];
+      const callArg = anthropicCreateSpy.mock.calls[0]![0] as { messages: { role: string; content: string }[] };
       const prompt = callArg.messages[0].content;
 
       expect(prompt).toContain("[...tronqué]");
@@ -339,9 +329,7 @@ describe("synthesizeAnswer", () => {
         PROVENANCE,
       );
 
-      const [[callArg]] = openaiCreateSpy.mock.calls as [
-        [{ messages: { content: string }[] }],
-      ][];
+      const callArg = openaiCreateSpy.mock.calls[0]![0] as { messages: { role: string; content: string }[] };
       expect(callArg.messages[0].content).toContain(QUESTION);
     });
   });
@@ -418,9 +406,7 @@ describe("synthesizeAnswer", () => {
         PROVENANCE,
       );
 
-      const [[callArg]] = geminiGenerateSpy.mock.calls as [
-        [{ contents: string }],
-      ][];
+      const callArg = geminiGenerateSpy.mock.calls[0]![0] as { contents: string };
       expect(callArg.contents).toContain(QUESTION);
     });
   });
@@ -433,8 +419,17 @@ describe("synthesizeAnswer", () => {
     it("rejects with a timeout error when the provider takes too long", async () => {
       vi.useFakeTimers();
 
-      // A promise that never resolves — simulates a hung network call.
-      anthropicCreateSpy.mockImplementationOnce(() => new Promise(() => {}));
+      // Mock that respects AbortSignal — rejects when aborted, like real SDKs.
+      anthropicCreateSpy.mockImplementationOnce(
+        (_opts: unknown, reqOpts?: { signal?: AbortSignal }) =>
+          new Promise((_, reject) => {
+            if (reqOpts?.signal) {
+              reqOpts.signal.addEventListener("abort", () => {
+                reject(new DOMException("The operation was aborted", "AbortError"));
+              });
+            }
+          }),
+      );
 
       const { synthesizeAnswer } = await import("@/lib/ask/synthesis");
 
@@ -447,10 +442,13 @@ describe("synthesizeAnswer", () => {
         PROVENANCE,
       );
 
-      // Advance time past the 15 s threshold.
-      vi.advanceTimersByTime(16_000);
+      // Register the rejection handler BEFORE advancing timers to avoid unhandled rejection.
+      const expectation = expect(resultPromise).rejects.toThrow("Synthèse LLM : timeout");
 
-      await expect(resultPromise).rejects.toThrow("Synthèse LLM : timeout");
+      // Advance time past the 15 s threshold (async to flush microtasks from dynamic imports).
+      await vi.advanceTimersByTimeAsync(16_000);
+
+      await expectation;
 
       vi.useRealTimers();
     });

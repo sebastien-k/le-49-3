@@ -6,7 +6,9 @@ import type { AskEvent, LlmProvider } from "@/types/ask";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  let body: { question?: string; llmProvider?: LlmProvider; llmApiKey?: string };
+  const llmApiKey = request.headers.get("x-llm-api-key") || undefined;
+
+  let body: { question?: string; llmProvider?: LlmProvider };
   try {
     body = await request.json();
   } catch {
@@ -44,7 +46,9 @@ export async function POST(request: NextRequest) {
       };
 
       try {
-        await runAskPipeline(question, emit, body.llmProvider, body.llmApiKey || undefined);
+        const validProviders: LlmProvider[] = ["anthropic", "openai", "gemini"];
+        const provider = validProviders.includes(body.llmProvider!) ? body.llmProvider : undefined;
+        await runAskPipeline(question, emit, provider, llmApiKey);
       } catch (err) {
         emit({
           type: "error",

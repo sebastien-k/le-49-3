@@ -54,13 +54,15 @@ export function useResourceChat(
 
         const res = await fetch(`/api/resources/${resourceId}/query`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(active?.apiKey ? { "X-Llm-Api-Key": active.apiKey } : {}),
+          },
           body: JSON.stringify({
             question: trimmed,
             page: 1,
             page_size: 20,
             llmProvider: active?.provider,
-            llmApiKey: active?.apiKey,
             resourceTitle,
             datasetTitle,
           }),

@@ -65,9 +65,10 @@ export default async function DatasetPage({ params }: Props) {
   const resources = parseResourceList(rawResources);
   const metrics = rawMetrics ? parseMetrics(rawMetrics) : null;
 
-  // Fetch per-resource download metrics in parallel
+  // Fetch per-resource download metrics in parallel (capped to avoid rate-limiting)
+  const MAX_RESOURCE_METRICS = 20;
   const resourceMetricsResults = await Promise.allSettled(
-    resources.map((r) =>
+    resources.slice(0, MAX_RESOURCE_METRICS).map((r) =>
       getMetrics({ resource_id: r.id }).then((raw) => ({
         id: r.id,
         metrics: parseMetrics(raw),

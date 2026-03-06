@@ -435,9 +435,8 @@ export function parseMetrics(text: string): MetricsData {
 // --- Helpers ---
 
 function extractField(lines: string[], fieldName: string): string {
+  const regex = new RegExp(`^${escapeRegex(fieldName)}:\\s*(.+)`, "i");
   for (const line of lines) {
-    // Match "Field Name: value" (case-insensitive on first word)
-    const regex = new RegExp(`^${escapeRegex(fieldName)}:\\s*(.+)`, "i");
     const match = line.match(regex);
     if (match) return match[1].trim();
   }

@@ -57,8 +57,11 @@ export function useAsk() {
     try {
       const res = await fetch("/api/ask", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: trimmed, llmProvider, llmApiKey }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(llmApiKey ? { "X-Llm-Api-Key": llmApiKey } : {}),
+        },
+        body: JSON.stringify({ question: trimmed, llmProvider }),
         signal: controller.signal,
       });
 

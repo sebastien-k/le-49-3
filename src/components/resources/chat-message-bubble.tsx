@@ -5,7 +5,7 @@ import { AlertCircle, ChevronDown, ChevronUp, Key, Sparkles } from "lucide-react
 import { SynthesisContent } from "@/components/shared/synthesis-content";
 import type { ChatMessage } from "@/types/chat";
 
-const COLLAPSE_THRESHOLD = 200;
+const COLLAPSE_THRESHOLD = 500;
 
 interface ChatMessageBubbleProps {
   message: ChatMessage;
@@ -78,6 +78,7 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
                 <>
                   <button
                     onClick={() => setExpanded(!expanded)}
+                    aria-expanded={expanded}
                     className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -97,6 +98,7 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
                   {isLong && (
                     <button
                       onClick={() => setExpanded(!expanded)}
+                      aria-expanded={expanded}
                       className="flex items-center gap-1 mt-1 text-xs text-primary hover:underline"
                     >
                       {expanded ? (
@@ -118,15 +120,16 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
           )}
 
           {/* Mini-tableau */}
-          {message.data && message.data.rows.length > 0 && (
+          {message.data && message.data.rows.length > 0 && (() => {
+            const visibleColumns = message.data.columns
+              .filter((c) => c !== "__id")
+              .slice(0, 5);
+            return (
             <div className="border rounded-md overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-muted/50">
-                    {message.data.columns
-                      .filter((c) => c !== "__id")
-                      .slice(0, 5)
-                      .map((col) => (
+                    {visibleColumns.map((col) => (
                         <th
                           key={col}
                           className="px-2 py-1 text-left font-medium whitespace-nowrap"
@@ -139,10 +142,7 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
                 <tbody>
                   {message.data.rows.slice(0, 5).map((row, i) => (
                     <tr key={i} className="border-t border-border/50">
-                      {message.data!.columns
-                        .filter((c) => c !== "__id")
-                        .slice(0, 5)
-                        .map((col) => (
+                      {visibleColumns.map((col) => (
                           <td
                             key={col}
                             className="px-2 py-1 max-w-[120px] truncate whitespace-nowrap"
@@ -161,7 +161,8 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
         </>
       )}
     </div>

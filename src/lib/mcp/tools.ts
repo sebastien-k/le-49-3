@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { callMcpTool } from "./client";
 import { getCachedOrFetch } from "./cache";
 import type {
@@ -23,12 +24,16 @@ export async function searchDatasets(params: SearchDatasetsParams): Promise<stri
   });
 }
 
-export async function getDatasetInfo(params: GetDatasetInfoParams): Promise<string> {
+const _getDatasetInfoById = cache(async (datasetId: string): Promise<string> => {
   return getCachedOrFetch(
-    `dataset:${params.dataset_id}`,
-    () => callMcpTool("get_dataset_info", { dataset_id: params.dataset_id }),
+    `dataset:${datasetId}`,
+    () => callMcpTool("get_dataset_info", { dataset_id: datasetId }),
     { ttl: 300 }
   );
+});
+
+export async function getDatasetInfo(params: GetDatasetInfoParams): Promise<string> {
+  return _getDatasetInfoById(params.dataset_id);
 }
 
 export async function listDatasetResources(params: ListDatasetResourcesParams): Promise<string> {

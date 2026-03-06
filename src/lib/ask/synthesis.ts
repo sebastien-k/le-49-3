@@ -66,7 +66,7 @@ Instructions :
 
 // --- Provider-specific synthesis functions ---
 
-async function synthesizeAnthropic(apiKey: string, prompt: string): Promise<string> {
+async function synthesizeAnthropic(apiKey: string, prompt: string, signal?: AbortSignal): Promise<string> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const client = new Anthropic({ apiKey });
 
@@ -74,7 +74,7 @@ async function synthesizeAnthropic(apiKey: string, prompt: string): Promise<stri
     model: "claude-haiku-4-5-20251001",
     max_tokens: MAX_COMPLETION_TOKENS,
     messages: [{ role: "user", content: prompt }],
-  });
+  }, { signal });
 
   const textBlock = message.content.find((b) => b.type === "text");
   if (!textBlock || textBlock.type !== "text") {
@@ -83,7 +83,7 @@ async function synthesizeAnthropic(apiKey: string, prompt: string): Promise<stri
   return textBlock.text;
 }
 
-async function synthesizeOpenAI(apiKey: string, prompt: string): Promise<string> {
+async function synthesizeOpenAI(apiKey: string, prompt: string, signal?: AbortSignal): Promise<string> {
   const OpenAI = (await import("openai")).default;
   const client = new OpenAI({ apiKey });
 
@@ -91,14 +91,14 @@ async function synthesizeOpenAI(apiKey: string, prompt: string): Promise<string>
     model: "gpt-4o-mini",
     max_tokens: MAX_COMPLETION_TOKENS,
     messages: [{ role: "user", content: prompt }],
-  });
+  }, { signal });
 
   const text = completion.choices[0]?.message?.content;
   if (!text) throw new Error("Synthèse LLM : réponse vide");
   return text;
 }
 
-async function synthesizeGemini(apiKey: string, prompt: string): Promise<string> {
+async function synthesizeGemini(apiKey: string, prompt: string, _signal?: AbortSignal): Promise<string> {
   const { GoogleGenAI } = await import("@google/genai");
   const ai = new GoogleGenAI({ apiKey });
 
@@ -115,7 +115,9 @@ async function synthesizeGemini(apiKey: string, prompt: string): Promise<string>
 
 // --- Dispatcher ---
 
-const PROVIDER_FN: Record<LlmProvider, (apiKey: string, prompt: string) => Promise<string>> = {
+type ProviderFn = (apiKey: string, prompt: string, signal?: AbortSignal) => Promise<string>;
+
+const PROVIDER_FN: Record<LlmProvider, ProviderFn> = {
   anthropic: synthesizeAnthropic,
   openai: synthesizeOpenAI,
   gemini: synthesizeGemini,
@@ -123,6 +125,7 @@ const PROVIDER_FN: Record<LlmProvider, (apiKey: string, prompt: string) => Promi
 
 /**
  * Synthesize a human-readable answer using the specified LLM provider.
+ * Uses AbortController to cancel the underlying HTTP request on timeout.
  */
 export async function synthesizeAnswer(
   provider: LlmProvider,
@@ -135,13 +138,20 @@ export async function synthesizeAnswer(
   const dataSummary = buildDataSummary(rawAnswer, data);
   const prompt = buildPrompt(question, dataSummary, provenance);
 
-  return Promise.race([
-    PROVIDER_FN[provider](apiKey, prompt),
-    new Promise<never>((_, reject) =>
-      setTimeout(
-        () => reject(new Error("Synthèse LLM : timeout")),
-        SYNTHESIS_TIMEOUT_MS,
-      ),
-    ),
-  ]);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(new Error("Synthèse LLM : timeout")),
+    SYNTHESIS_TIMEOUT_MS,
+  );
+
+  try {
+    return await PROVIDER_FN[provider](apiKey, prompt, controller.signal);
+  } catch (err: unknown) {
+    if ((err as { name?: string })?.name === "AbortError") {
+      throw new Error("Synthèse LLM : timeout");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }

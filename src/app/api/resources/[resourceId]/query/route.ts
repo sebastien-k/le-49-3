@@ -4,6 +4,8 @@ import { parseTabularData } from "@/lib/mcp/parsers";
 import { synthesizeAnswer } from "@/lib/ask/synthesis";
 import type { LlmProvider } from "@/types/ask";
 
+const VALID_PROVIDERS: LlmProvider[] = ["anthropic", "openai", "gemini"];
+
 export const dynamic = "force-dynamic";
 
 export async function POST(
@@ -12,6 +14,8 @@ export async function POST(
 ) {
   try {
     const { resourceId } = await params;
+
+    const llmApiKey = request.headers.get("x-llm-api-key") || undefined;
     const body = await request.json();
 
     const {
@@ -24,7 +28,6 @@ export async function POST(
       sort_column,
       sort_direction,
       llmProvider,
-      llmApiKey,
       resourceTitle,
       datasetTitle,
     } = body;
@@ -35,6 +38,8 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    const validProvider = VALID_PROVIDERS.includes(llmProvider) ? (llmProvider as LlmProvider) : undefined;
 
     const raw = await queryResourceData({
       question,
@@ -51,10 +56,10 @@ export async function POST(
     const data = parseTabularData(raw);
 
     let synthesis: string | null = null;
-    if (llmProvider && llmApiKey && question !== "Show all data") {
+    if (validProvider && llmApiKey && question !== "Show all data") {
       try {
         synthesis = await synthesizeAnswer(
-          llmProvider as LlmProvider,
+          validProvider,
           llmApiKey,
           question,
           raw,
