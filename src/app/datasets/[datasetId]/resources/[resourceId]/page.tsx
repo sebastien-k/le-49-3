@@ -7,8 +7,9 @@ import { Separator } from "@/components/ui/separator";
 import { FormatBadge } from "@/components/shared/format-badge";
 import { McpTextRenderer } from "@/components/shared/mcp-text-renderer";
 import { ResourceDataViewer } from "@/components/resources/resource-data-viewer";
-import { getResourceInfo, getDatasetInfo } from "@/lib/mcp/tools";
-import { parseResourceInfo, parseDatasetInfo } from "@/lib/mcp/parsers";
+import { Eye } from "lucide-react";
+import { getResourceInfo, getDatasetInfo, getMetrics } from "@/lib/mcp/tools";
+import { parseResourceInfo, parseDatasetInfo, parseMetrics } from "@/lib/mcp/parsers";
 
 interface Props {
   params: Promise<{ datasetId: string; resourceId: string }>;
@@ -57,13 +58,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ResourcePage({ params }: Props) {
   const { datasetId, resourceId } = await params;
 
-  const [rawResource, rawDataset] = await Promise.all([
+  const [rawResource, rawDataset, rawMetrics] = await Promise.all([
     getResourceInfo({ resource_id: resourceId }),
     getDatasetInfo({ dataset_id: datasetId }).catch(() => ""),
+    getMetrics({ resource_id: resourceId }).catch(() => ""),
   ]);
 
   const resource = parseResourceInfo(rawResource);
   const dataset = rawDataset ? parseDatasetInfo(rawDataset) : null;
+  const metrics = rawMetrics ? parseMetrics(rawMetrics) : null;
 
   if (!resource) {
     return (
@@ -105,6 +108,18 @@ export default async function ResourcePage({ params }: Props) {
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-sm text-muted-foreground">
             {resource.fileSize && <span>{resource.fileSize}</span>}
             {resource.mimeType && <span>{resource.mimeType}</span>}
+            {metrics && metrics.totalVisits > 0 && (
+              <span className="flex items-center gap-1" title="Visites sur data.gouv.fr (12 derniers mois)">
+                <Eye className="h-3.5 w-3.5" />
+                {metrics.totalVisits.toLocaleString("fr-FR")} visites
+              </span>
+            )}
+            {metrics && metrics.totalDownloads > 0 && (
+              <span className="flex items-center gap-1" title="Telechargements sur data.gouv.fr (12 derniers mois)">
+                <Download className="h-3.5 w-3.5" />
+                {metrics.totalDownloads.toLocaleString("fr-FR")} tel.
+              </span>
+            )}
             {resource.isTabular && (
               <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                 API Tabulaire

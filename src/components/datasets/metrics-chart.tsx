@@ -114,6 +114,9 @@ export function MetricsChart({ metrics }: MetricsChartProps) {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Evolution mensuelle</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Statistiques globales du dataset sur data.gouv.fr (toutes ressources confondues)
+          </p>
         </CardHeader>
         <CardContent className="pb-4">
           <svg
